@@ -382,10 +382,32 @@ relevant_list <- c(
   "housing_domain"
   )
 
+# filter the records that meet one of two conditions 
+# condition 1: high divergence black and latinx 
+# population greater than 50% and poverty rate 
+# greater than or equal to 30% OR
+# condition 2: single-parent family greater than 
+# or equal to 30% and poverty rate greater than or 
+# equal to 30%
+
+# If these records meet one of two conditions, filter it, 
+# create a column named category and assign it "Lowest Opportunity"
 categorize <-
   data %>% dplyr::select(relevant_list) %>% filter(DI_Blk_Lat_POV30_OR_POV30_SPF30 == -1) %>%
   mutate(category = "Lowest Opportunity") #returns 320
 
+#Filter records without poverty and single-parent family percentages
+#There are three missing records
+na_records <-
+  data %>% dplyr::select(relevant_list) %>% filter(
+  fips == "06081984300" | fips == "06095253000" |
+  fips == "06095980000"
+  )
+
+na_records$category <- "NA"
+
+#pull the unfiltered records to run the opportunity categorization
+#Here, there are the remaining 1256 records that will be categorized from highest to low opportunity 
 remaining <-
   data %>% dplyr::select(relevant_list) %>%
   filter(
@@ -395,38 +417,41 @@ remaining <-
   fips != "06095980000"
   )
   )
-
-#remaining$DI_Blk_Lat_POV30 <- 0
-
-nan_records <-
-  data %>% dplyr::select(relevant_list) %>% filter(
-  fips == "06081984300" | fips == "06095253000" |
-  fips == "06095980000"
-  )
-
-nan_records$category <- "NA"
 ```
 
 ## D. Categorization with Filters
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
-#1256 records instead of 1259 records after removing 3 NAs
-#quantile(remaining$index, prob = c(0.25, .5, .75))
-
+#Give this category a character 
 remaining$category <- "Opportunity"
 
-#Top 75.01%
-remaining$category[which(remaining$index > quantile(remaining$index, prob = .75))] <- "Highest Opportunity" #314
+#The categorization takes the quantile function and each category
+#receives roughly 314 records
+#Top 75.01% should return 314 records
+remaining$category[which(remaining$index > quantile(remaining$index, prob = .75))] <- "Highest Opportunity" 
 
-#Between 50.01% - 75.00%
-remaining$category[which(remaining$index > quantile(remaining$index, prob = .50) & remaining$index <= quantile(remaining$index, prob = .75))] <- "High Opportunity" #314
+#Between 50.01% - 75.00% should return 314 records
+remaining$category[which(remaining$index > quantile(remaining$index, prob = .50) & remaining$index <= quantile(remaining$index, prob = .75))] <- "High Opportunity" 
 
-#Between 25.01% - 50.00%
-remaining$category[which(remaining$index > quantile(remaining$index, prob = .25) & remaining$index <= quantile(remaining$index, prob = .50))] <- "Moderate Opportunity" #314
+#Between 25.01% - 50.00% should return 314 records
+remaining$category[which(remaining$index > quantile(remaining$index, prob = .25) & remaining$index <= quantile(remaining$index, prob = .50))] <- "Moderate Opportunity"
 
-#Bottom 25%
+#Bottom 25% should return 314 records
 remaining$category[which(remaining$index <= quantile(remaining$index, prob = .25))] <- "Low Opportunity" #314
 
-#Join the datasets with filters 
+#Join the datasets with filters with a function
+df <-
+  Reduce(function(x, y, z)
+  full_join(
+  x = x,
+  y = y,
+  z = z
+  ) ,
+  list(remaining, categorize, nan_records))
+```
+
+### 1. Categorization with Filters
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+#Join the datasets and filters using Reduce
 df <-
   Reduce(function(x, y, z)
   full_join(
@@ -438,8 +463,8 @@ df <-
 ```
 
 ## E. Categorization without Filters
+Here, I take a slightly different approach with the categorization method. Instead of breaking each category into 25%, I break it down by 20% per category, which means each category will have the same number of records. This is because all of these records are categorized only by its index value rather than filters.
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
-#Top 20% (80-100%)
 #data$index <- ifelse(is.na(data$index), 0, data$index)
 
 #Top 20% (80-100%)
@@ -458,12 +483,6 @@ data$category_wo_filters[which(data$index < quantile(data$index, prob =.60) & da
 data$category_wo_filters[which(data$index <= quantile(data$index, prob = .40) & data$index >= quantile(data$index, prob = 0.20))] <- "Low Opportunity"
 
 new_df <- merge(data, df, by = intersect(names(data), names(df)), all.x = TRUE)
-
-#names <- intersect(names(data), names(df))
-#names(new_df) <- sub("^X", "", names(z))
-#make.names(names(z))
-
-#head(new_df)
 #write.csv(data, "data.csv")
 ```
 
@@ -478,7 +497,6 @@ one <- ggplot2::ggplot(categoriez, aes(x=index.x, y=category, color=category)) +
 
 one+facet_grid(.~category)
 #ggsave("index_category", "index_category.png")
-
 
 three <-
   ggplot(df, aes(x = cbsa, fill = (category))) + geom_bar(position = "dodge")

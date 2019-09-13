@@ -1,0 +1,95 @@
+---
+title: "Change's Made in Arthur's Review"
+author: "Arthur Gailes"
+date: "October 30, 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(include = F)
+library(tidyverse)
+```
+
+
+# Opportunity Mapping Code Review
+
+Hi Phuong, 
+
+This is quite a project! Thanks for letting me review. My notes are below, and they are committed within the branch "Arthur_review." Please feel free to contact me with any questions or concerns.
+
+## File Organization
+
+I redid some of the data file calls so I could keep track of them more easily. The data directory, contains all input and output files. The code will work if you run it, but **only** if you download the data/input directory and place it in the same folder as the scripts.
+
+The data directory is on Box: Equity Metrics Program>Members>Arthur>Arthur Opportunity Mapping Review>opportunitymapping
+
+I also created an R project to make things a bit easier (if you open the R project file, it'll automatically set the directory, allowing it to work on any computer where the directory is the same).
+
+
+## Census_ACS_2016.Rmd
+
+* The coefficients of variation were calculated incorrectly ([source](http://regionalequityatlas.org/sites/rea.tumblehome.com/files/images/toolkit/A%2061%20-%20Understanding%20MOEs%20and%20CVs%20in%20the%20ACS.pdf)). In the original code, they were calculated across the entire bay area. They should be calculated by row, so that each tract has its own coefficient of variation. I have made changes where noted below.
+  + In general, I used the variable that would be the numerator in the final percentage estimate. This saves time in computing the MOE for the percentage, and decreases the chance that I'll make an error. In addition, the CV using the percentage is exactly the same as calculating the CV for the numerator of that percentage. I used the MOE of the percentage only if it was supplied by the source data.
+* Verified all census/acs variable names (e.g. HD01_VD01) are correct.
+* I'm not sure what files were saved, or to what format, as it wasn't in the code. I've added a save chuck for all the files, but you'll probably want to reformat it to work with your ArcGIS input call.
+
+
+#### All changes below refer to chunk names, which I've added for this purpose.
+
+* Read Data: 
+    + Variable race was loaded, but never referred to. Also, the table it calls is from 2015 and doesn't report race. To fix this, I've changed the race variable to load census_race from the 2010 census, and acs_race from the 2016 acs, which I think was the original intention
+    + Rewrote input calls to remove second row of variable descriptions in race columns
+* Decennial Census Race/Ethnicity:
+    + Census_race and acs_race variables are called here without reference, and are never saved or referred to again.
+    + Consolidated the select-rename calls into single select calls; the rename functions weren't working.
+    + The summary call is incorrect; it shrinks the dataframe to state values. Replaced with a mutate function.
+    + Replaced MOE calculation with the pre-loaded tidycensus function, which is slightly more accurate.
+* Adult Educational Attainment S1501: CV Variables were not calculated, so reliability column is incorrect. I wrote the calculations if you'd like to include them.
+* Public Assistance B19057: 
+    + Fixed CV variable.
+    + A HUGE portion of tracts (over 75%) have unreliable estimates. This is because the proportion of people on public assistance is so small that the margins of error are often larger than the estimates themselves. In my opinion, this indicator should not be used at all.
+        - You could get around this problem statistically by measuring the inverse instead (people without public assistance). 
+* Employment B23001:
+    + Consolidated as.numeric calls into one mutate_all function.
+    + Added MOE estimates using tidycensus.
+    + Fixed CV variable.
+* Neighborhood Poverty Rate 200FPL: 
+    + The variable moe_pct2fpl was mistitled; this is an MOE for the total, ont a percentage. The MOE for the percentage is not necessary to convert CVs.
+    + Fixed CV variable.
+* Health Insurance: 
+    + Created MOE for the insured population.
+    + Truncated the as.numeric call for convenience.
+    + Fixed CV variable.
+* Home Ownership: This is incomplete. Is it supposed to be included in the final product?
+* Save Files: I created this to save the output from each dataset.
+
+
+
+## taxbase_capacity.Rmd
+
+* I strongly recommend double-checking my corrections here. The code isn't complete, and has some holes where I think you must've been working in the console or some other program. To make the code work, I read through your notes in the file, but if any of the notes are wrong or incomplete (or if I've interpretted them incorrectly), my corrections will reflect that.
+* It seems like everything before clean_GID_2012 was't being executed, but I can't compare and contrast it with whatever happened in Excel. I've tried to fix it according to the instructions, but if anything was missing from them (or if an error was made in Excel), my output won't match yours.
+* Parts of this code are missing; it's impossible that this file ever worked by itself. Several variables are called without being established. I've changed the names of those variables to make them work, but I don't know what got left out. I've noted those places below.
+* Removed duplicate "r setup" tags causing a knit error.
+* replaced plyr functions with dplyr calls and removed the plyr package, which is older and interferes with dplyr functions.
+* I don't know the source for the municipal data, so I couldn't proofread county codes, IDs, etc. With that said, I suspect that there is some error in the ID generation (see note on munic_grid below).
+* The file does not currently save.
+
+
+### All changes below refer to chunk names, which I've added for this purpose.
+* filter_item: fixed regex code, assuming the instructions below are correct.
+* municp3: the code refers to a X2012_municp3, which is never created. The fact that this code worked at some point means some of the code is missing, but I don't know what it would be. I've changed it to X2012_municp3 for consistency, but this is almost certainly missing a step. Recommend double checking.
+* clean_GID_2012: switched to read_tsv to suppress error message.
+
+* munic_gid: I think something is wrong here. This code only matches about 1/5 of observations. Subject to all the notes above about the Excel import. I'm not sure if the process actually followed the code.
+* joins: `block_city_xwalk` doesn't actually match any observations. 
+* rev_capita: **starting here, the code is definitely broken, but I'm not sure how to fix it.**
+    + The column `revenueitems_final` was originally called here, but that column was never established in the file. I've replaced it with the `revenueitems_total` column, but I can't verify whether those two columns were actually the same.
+    + `X2012_municp4_BayArea` is not the same length as `block_city3`, so this division can't work.
+        - In general, I'd recommend joining the data frames before making a division like this, to prevent errors from divergent sorting mechanisms.
+* tract_agg: block_city4 is never created.
+
+## Filter_methods.R
+
+This code doesn't appear to be in operation. Did you want input on this? I'm not sure how to proceed.
+

@@ -1,0 +1,35 @@
+---
+title: "Final_changes_list"
+author: "Phuong Tseng"
+date: "11/30/2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(include = F)
+library(tidyverse)
+```
+
+# Opportunity Mapping Code Review - Final Changes
+
+Hi Arthur,
+
+Thank you so much for going through all of these changes and providing edits to them. These are extremely helpful suggestions and edits, so I wanted to let you know what I was able to review and improve based on your list.
+
+## File Organization
+
+I followed your instructions carefully in terms of where and how to download the data directory so that all the scripts will end up in the original/same folder. The R project definitely made this process a lot easier and organized.
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

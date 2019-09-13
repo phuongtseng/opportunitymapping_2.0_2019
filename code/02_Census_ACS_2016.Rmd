@@ -1,0 +1,651 @@
+---
+title: 'Census and ACS Data Analysis'
+author: "Phuong Tseng"
+date: "April 3, 2018"
+output:
+  html_document:
+      toc: yes
+      toc_float: yes
+  pdf_document: default
+---
+
+## Information about the Script:
+
+> This script analyzes various census and acs data to understand the distribution of opportunity in the Bay Area. 
+> These ACS indicators are adult educational attainment, public assistance, median home value, commute time, employment rate, poverty rate, and health insurance. The two variables that require decennial census data are poverty and racial segregation indicators that we use as filters. 
+
+## 1. Set-up the libraries and directory 
+Use the 2017 ACS 5-yr-est datasets to run analysis for our 2019 maps
+To get started with tidycensus, refer to [https://cran.r-project.org/web/packages/censusapi/vignettes/getting-started.html]
+We used the 2016 ACS 5-yr-est datasets to run the analysis for our 2018
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir=normalizePath("/Users/ptseng/Documents/Research/OpportunityMapping_2019/Unprocessed/data_csv/"))
+library(tidyverse)
+library(tidycensus)
+v1 <- load_variables(2017, "acs5", cache = TRUE)
+View(v1)
+#devtools::create("opportunitymapping2019")
+#devtools::use_package()
+readRenviron("~/.Renviron")
+```
+
+```{r load all files, eval=FALSE, include=FALSE}
+myindicators <- data.frame(
+  indicators = c(
+  "p_ba",
+  "p_passist",
+  "preK",
+  "mhval",
+  "employment",
+  "povrate",
+  "owner",
+  "comtime",
+  "race",
+  "health insurance"
+  ),
+  estimates = c(
+  "B28006_014",
+  "B19057_002",
+  "B14001_003",
+  "B25077_001",
+  "B23025_004",
+  "C17002_008",
+  "B25008_002",
+  "B08303_013",
+  NA,
+  NA
+  ),
+  total = c(
+  "B15003_001",
+  "B19057_001",
+  "B09001_004",
+  NA,
+  "B23025_001",
+  "C17002_001",
+  "B25008_001",
+  "B08303_001",
+  NA,
+  NA
+  ),
+  description = c(
+  "educational attainment of people 25 years and older",
+  "population of people who are on public assistance",
+  "early childhood participation ratio",
+  "median housing value",
+  "employment rate",
+  "poverty rate",
+  "owner occupied",
+  "commute time of population traveling to work 90 or more minutes",
+  "race or ethnicity using DP04 table",
+  "population without health insurance coverage"
+  )
+  )
+  View(myindicators)
+
+  estimates=c("B28006_014", "B19057_002", "B14001_003", "B25077_001", "B23025_004", "C17002_008", "B25008_002")
+  counties= c("Alameda", "Contra Costa", "Marin", "Napa","San Mateo",
+              "Santa Clara","Solano","Sonoma","San Francisco")
+  indicators <- get_acs(
+  geography = "tract",
+  variables = estimates,
+  output="wide",
+  state = "CA",
+  county = counties,
+  geometry = TRUE
+  ) 
+View(indicators)
+```
+
+### Decennial Census
+```{r Decennial Census Race/Ethnicity, eval=FALSE, include=FALSE}
+census_race %>% select(census_race, GEO.id, GEO.id2, HD01_S106, HD01_S107, HD02_S107, HD01_S123, HD02_S123, HD01_S124, HD02_S124, HD01_S126, HD02_S126, HD01_S125, HD01_S127, HD01_S128, HD01_S129) %>% 
+  rename(longID, tractID, total_pop_2010, hispanic_2010, pct_hispanic_2010, white_2010,  pct_white_2010, black_2010, pct_black_2010, asian_2010, pct_asian_2010, amer_indian_2010, hawaiian_2010,  other_race_2010, two_races_2010) %>% 
+  summarize((tot_other_race_2010 = amer_indian_2010 + hawaiian_2010 + other_race_2010 + two_races_2010), (pct_tot_other_race_2010 = tot_other_race_2010/total_pop_2010))
+
+center <- function(data, midpoint) {
+  new_data <- (data - mean(data)) + midpoint
+}
+z <- c(0, 0, 0, 0)
+z
+center(z,3)
+
+second_function <- function(data){
+  census_race %>% 
+    select(data, GEO.id, GEO.id2, HD01_S106, HD01_S107, HD02_S107, HD01_S123, HD02_S123, HD01_S124, HD02_S124, HD01_S126, HD02_S126, HD01_S125, HD01_S127, HD01_S128, HD01_S129) %>%
+    rename(longID, tractID, total_pop_2010, hispanic_2010, pct_hispanic_2010, white_2010,  pct_white_2010, black_2010, pct_black_2010, asian_2010, pct_asian_2010, amer_indian_2010, hawaiian_2010,  other_race_2010, two_races_2010) %>% 
+  summarize((tot_other_race_2010 = amer_indian_2010 + hawaiian_2010 + other_race_2010 + two_races_2010), (pct_tot_other_race_2010 = tot_other_race_2010/total_pop_2010))
+}
+
+# ACS Race/Ethnicity table
+acs_race %>% select(
+  acs_race,
+  GEO.id,
+  GEO.id2,
+  HD01_VD01,
+  HD02_VD01,
+  HD01_VD03,
+  HD02_VD03,
+  HD01_VD04,
+  HD02_VD04,
+  HD01_VD05,
+  HD02_VD05,
+  HD01_VD06,
+  HD02_VD06,
+  HD01_VD07,
+  HD02_VD07,
+  HD01_VD08,
+  HD02_VD08,
+  HD01_VD09,
+  HD02_VD09,
+  HD01_VD12,
+  HD02_VD12
+  ) %>% rename(
+  longID,
+  tractID,
+  total_pop_2015,
+  moe_total_pop_2015,
+  white_2015,
+  moe_white_2015,
+  black_2015,
+  moe_black_2015,
+  amer_indian_2015,
+  moe_amer_indian_2015,
+  asian_2015,
+  moe_asian_2015,
+  hawaiian_2015,
+  moe_hawaiian_2015,
+  other_race_2015,
+  moe_other_race_2015,
+  two_races_2015,
+  moe_two_races_2015,
+  hispanic_2015,
+  moe_hispanic_2015
+  ) %>% summarize((
+  tot_other_race_2015 = amer_indian_2015 + hawaiian_2015 + other_race_2015 + two_races_2015
+  ),
+  (
+  moe_tot_other_race_2015 = sqrt(
+  moe_amer_indian_2015 ^ 2 + moe_hawaiian_2015 ^ 2 + moe_other_race_2015 ^
+  2 + moe_two_races_2015 ^ 2
+  )
+  )
+  )
+```
+
+### Education Domain
+#### i. Adult Educational Attainment
+```{r Adult Educational Attainment S1501, echo=FALSE}
+#Descriptive stat
+myfunction <- function(x){
+  zscore <- x-mean(x,na.rm=TRUE)/sd(x,na.rm=TRUE)
+  return(zscore)
+}
+
+#Use the bayarea records percentage or estimates of baplus
+#bayarea_adulted_2016$Reliablty <- if_else((bayarea_adulted_2016$est_baplus_2016 * 0.3) < bayarea_stats_adulted_2016$CV, "Unreliable", "Reliable", missing="NA")
+```
+
+### Economic & Mobility Domain
+#### i. Public Assistance
+```{r Public Assistance B19057, eval=FALSE, include=FALSE}
+# Clean the B19057 data
+passist <- select(passist, GEO.id, GEO.id2, HD01_VD01, HD01_VD02, HD02_VD01, HD02_VD02)
+
+colnames(passist) <- c("longID", "tractID", "est_total_2016", "est_passist_2016", "moe_total_2016", "moe_passist_2016")
+
+passist <- passist[-c(1),,drop=F]
+
+passist_2016 <- passist
+passist_2016 <- mutate(passist_2016, longID=as.character(longID), 
+               tractID=as.character(tractID), 
+               est_total_2016 = as.numeric(est_total_2016),
+               est_passist_2016 = as.numeric(est_passist_2016),
+               moe_total_2016 = as.numeric(moe_total_2016),
+               moe_passist_2016 = as.numeric(moe_passist_2016)) 
+glimpse(passist_2016)
+nrow(passist_2016)
+
+# Extract Bay Area Counties
+passist_2016$CountyID <- substr(passist_2016$tractID, 1,5)
+
+bayarea_passist_2016 <- filter(passist_2016, CountyID=="06001" | CountyID=="06013" | CountyID=="06041" | CountyID=="06055" | CountyID=="06075" | CountyID=="06081" | CountyID=="06085" | CountyID=="06095" | CountyID=="06097")
+
+nrow(bayarea_passist_2016)
+
+#Descriptive Statistics
+#Percentage of people with public assistance
+bayarea_passist_2016$EC_PASSIST <- bayarea_passist_2016$est_passist_2016/bayarea_passist_2016$est_total_2016
+
+#Descriptive Statistics of people with public assistance in the bay area
+bayarea_stats_passist_2016 <- summarise(bayarea_passist_2016, mean_EC_PASSIST = mean(bayarea_passist_2016$EC_PASSIST, na.rm=T), sd_EC_PASSIST=sd(bayarea_passist_2016$EC_PASSIST, na.rm = T), CV = sd(bayarea_passist_2016$EC_PASSIST, na.rm=TRUE)/mean(bayarea_passist_2016$EC_PASSIST, na.rm=TRUE)*100)
+
+bayarea_passist_2016$zscores <- (bayarea_passist_2016$EC_PASSIST - bayarea_stats_passist_2016$mean_EC_PASSIST)/bayarea_stats_passist_2016$sd_EC_PASSIST
+
+bayarea_passist_2016$adj_zscores <- bayarea_passist_2016$zscores * -1
+
+#summary(bayarea_passist_2016) #To check number of NA's
+
+bayarea_passist_2016$Reliablty <- if_else((bayarea_passist_2016$EC_PASSIST * 0.3) < bayarea_stats_passist_2016$CV, "Unreliable", "Reliable", missing="NA")
+```
+
+#### ii. Median Home Value
+```{r Median Home Value B25077, eval=FALSE, include=FALSE}
+# Clean the B25077 data
+mhval <- select(mhval, GEO.id, GEO.id2, HD01_VD01, HD02_VD01)
+
+colnames(mhval) <- c("longID", "tractID", "est_mhval_2016", "moe_mhval_2016")
+
+mhval <- mhval[-c(1),,drop=F]
+
+mhval_2016 <- mhval
+mhval_2016 <- mutate(mhval_2016, longID=as.character(longID), 
+               tractID=as.character(tractID), 
+               est_mhval_2016 = as.numeric(est_mhval_2016),
+               moe_mhval_2016 = as.numeric(moe_mhval_2016))
+               
+glimpse(mhval_2016)
+nrow(mhval_2016)
+
+# Extract
+mhval_2016$CountyID <- substr(mhval_2016$tractID, 1,5)
+
+bayarea_mhval_2016 <- filter(mhval_2016, CountyID=="06001" | CountyID=="06013" | CountyID=="06041" | CountyID=="06055" | CountyID=="06075" | CountyID=="06081" | CountyID=="06085" | CountyID=="06095" | CountyID=="06097")
+
+nrow(bayarea_mhval_2016)
+
+#Descriptive Statistics
+# Median Home Value in the bay area
+bayarea_stats_mhval_2016 <- summarise(bayarea_mhval_2016, mean_est_mhval_2016 = mean(bayarea_mhval_2016$est_mhval_2016, na.rm=T), sd_est_mhval_2016=sd(bayarea_mhval_2016$est_mhval_2016, na.rm = T), CV= sd(bayarea_mhval_2016$est_mhval_2016, na.rm=TRUE)/mean(bayarea_mhval_2016$est_mhval_2016, na.rm=TRUE) * 100)
+
+bayarea_mhval_2016$zscores <- (bayarea_mhval_2016$est_mhval_2016 - bayarea_stats_mhval_2016$mean_est_mhval_2016)/bayarea_stats_mhval_2016$sd_est_mhval_2016
+
+bayarea_mhval_2016$Reliablty <- if_else((bayarea_mhval_2016$est_mhval_2016 * 0.3) < bayarea_stats_mhval_2016$CV, "Unreliable", "Reliable", missing="NA")
+#summary(bayarea_mhval_2016) #To check number of NA's
+```
+
+#### iii. Commute Time, Needs column names
+```{r Commute Time B08303, eval=FALSE, include=FALSE}
+
+comtime <- select(comtime, GEO.id, GEO.id2 )
+
+colnames(comtime) <- c("longID", "tractID", "EST_TOT",
+"MOE_TOT",
+"EST_30_34",
+"MOE_30_34",
+"EST_35_39",
+"MOE_35_39",
+"EST_40_44",
+"MOE_40_44",
+"EST_45_59",
+"MOE_45_59",
+"EST_60_89",
+"MOE_60_89",
+"EST_90_MOR",
+"MOE_90_MOR",
+"AGG_30_MOR",
+"MOE_30_MOR",
+"EC_COMTIM",
+"MOE_30_TOT")
+
+comtime <- comtime[-c(1),,drop=F]
+
+comtime_2016 <- comtime
+
+#Extract 
+#comtime_2016$CountyID <- substr(comtime_2016$tractID, 1,5)
+
+#bayarea_comtime_2016 <- filter(comtime_2016, CountyID=="06001" | CountyID=="06013" | CountyID=="06041" | CountyID=="06055" | CountyID=="06075" | CountyID=="06081" | CountyID=="06085" | CountyID=="06095" | CountyID=="06097")
+
+#nrow(bayarea_comtime_2016)
+
+#mean_and_sd <- summarise(comtime_2016, mean_p_baplus_2016 = mean(comtime_2016$p_baplus_2016, na.rm=T), sd_p_baplus_2016=sd(comtime_2016$p_baplus_2016, na.rm = T))
+
+#ba_mean_and_sd <- summarise(bayarea_comtime_2016, mean_p_baplus_2016 = mean(bayarea_comtime_2016$p_baplus_2016, na.rm=T), sd_p_baplus_2016=sd(bayarea_comtime_2016$p_baplus_2016, na.rm = T))
+
+#bayarea_comtime_2016$zscores <- (bayarea_comtime_2016$p_baplus_2016 - ba_mean_and_sd$mean_p_baplus_2016)/ba_mean_and_sd$sd_p_baplus_2016
+
+#bayarea_comtime_2016$est_baplus_2016 <- bayarea_comtime_2016$est_ba_2016 + bayarea_comtime_2016$est_gradprof_2016
+
+#summary(bayarea_comtime_2016) #To check number of NA's
+#summary(bayarea_comtime_2016$p_baplus_2016)
+#summary(bayarea_comtime_2016$est_baplus_2016)
+
+```
+
+#### iv. Employment
+```{r echo=FALSE}
+employed <- select(employed, GEO.id, GEO.id2, HD01_VD10, HD02_VD10, 
+HD01_VD12, 
+HD02_VD12, 
+HD01_VD14, 
+HD02_VD14, 
+HD01_VD17, 
+HD02_VD17,
+HD01_VD19,
+HD02_VD19,
+HD01_VD21,
+HD02_VD21,
+HD01_VD24,
+HD02_VD24,
+HD01_VD26,
+HD02_VD26,
+HD01_VD28,
+HD02_VD28,
+HD01_VD31,
+HD02_VD31,
+HD01_VD33,
+HD02_VD33,
+HD01_VD35 ,
+HD02_VD35 ,
+HD01_VD38 ,
+HD02_VD38 ,
+HD01_VD40 ,
+HD02_VD40 ,
+HD01_VD42 ,
+HD02_VD42 ,
+HD01_VD45 ,
+HD02_VD45 ,
+HD01_VD47 ,
+HD02_VD47 ,
+HD01_VD49 ,
+HD02_VD49 ,
+HD01_VD52 ,
+HD02_VD52 ,
+HD01_VD54 ,
+HD02_VD54 ,
+HD01_VD56 ,
+HD02_VD56 ,
+HD01_VD99 ,
+HD02_VD99 ,
+HD01_VD101 ,
+HD02_VD101 ,
+HD01_VD103 ,
+HD02_VD103 ,
+HD01_VD106 ,
+HD02_VD106 ,
+HD01_VD108 ,
+HD02_VD108 ,
+HD01_VD110 ,
+HD02_VD110 ,
+HD01_VD113 ,
+HD02_VD113 ,
+HD01_VD115 ,
+HD02_VD115 ,
+HD01_VD117 ,
+HD02_VD117 ,
+HD01_VD120 ,
+HD02_VD120 ,
+HD01_VD122 ,
+HD02_VD122 ,
+HD01_VD124 ,
+HD02_VD124 ,
+HD01_VD127 ,
+HD02_VD127 ,
+HD01_VD129 ,
+HD02_VD129 ,
+HD01_VD131 ,
+HD02_VD131 ,
+HD01_VD134 ,
+HD02_VD134 ,
+HD01_VD136 ,
+HD02_VD136 ,
+HD01_VD138 ,
+HD02_VD138 ,
+HD01_VD141 ,
+HD02_VD141 ,
+HD01_VD143 ,
+HD02_VD143 ,
+HD01_VD145,
+HD02_VD145)
+
+#For this specific indicator, let's take the bay area estimates instead of the entire california
+# Extract for bay area
+employed_2016 <- employed
+employed_2016$CountyID <- substr(employed_2016$GEO.id2, 1,5)
+employed_2016 <- employed_2016[-c(1),,drop=F]
+
+bayarea_employed_2016 <- filter(employed_2016, CountyID=="06001" | CountyID=="06013" | CountyID=="06041" | CountyID=="06055" | CountyID=="06075" | CountyID=="06081" | CountyID=="06085" | CountyID=="06095" | CountyID=="06097")
+
+nrow(bayarea_employed_2016)
+
+# Population Ages 20-60
+bayarea_employed_2016$pop_20to60_2016 <- as.numeric(bayarea_employed_2016$HD01_VD10) + as.numeric(bayarea_employed_2016$HD01_VD17) + as.numeric(bayarea_employed_2016$HD01_VD24) + as.numeric(bayarea_employed_2016$HD01_VD31) + as.numeric(bayarea_employed_2016$HD01_VD38) + as.numeric(bayarea_employed_2016$HD01_VD45) + as.numeric(bayarea_employed_2016$HD01_VD52) + as.numeric(bayarea_employed_2016$HD01_VD99) + as.numeric(bayarea_employed_2016$HD01_VD106) + as.numeric(bayarea_employed_2016$HD01_VD113) + as.numeric(bayarea_employed_2016$HD01_VD120) + as.numeric(bayarea_employed_2016$HD01_VD127) + as.numeric(bayarea_employed_2016$HD01_VD134) + as.numeric(bayarea_employed_2016$HD01_VD141)
+
+# MOE Population Ages 20-60
+#bayarea_employed_2016$moe_pop_20to60_2016 <- sqrt(HD02_VD10^2 + HD02_VD17^2 + HD02_VD24^2 + HD02_VD31^2 + HD02_VD38^2 + HD02_VD45^2 + HD02_VD52^2 + HD02_VD99^2 + HD02_VD106^2 + HD02_VD113^2 + HD02_VD120^2 + HD02_VD127^2 + HD02_VD134^2 + HD02_VD141^2)
+
+# bayarea_employed_2016 Civilian and Armed Forces, 20 to 60
+bayarea_employed_2016$employed_pop_20to60_2016 <- as.numeric(bayarea_employed_2016$HD01_VD12) + as.numeric(bayarea_employed_2016$HD01_VD14) +  as.numeric(bayarea_employed_2016$HD01_VD19) + as.numeric(bayarea_employed_2016$HD01_VD21) +  as.numeric(bayarea_employed_2016$HD01_VD26) + as.numeric(bayarea_employed_2016$HD01_VD28) + as.numeric(bayarea_employed_2016$HD01_VD33) + as.numeric(bayarea_employed_2016$HD01_VD35) + as.numeric(bayarea_employed_2016$HD01_VD40) + as.numeric(bayarea_employed_2016$HD01_VD42) + as.numeric(bayarea_employed_2016$HD01_VD47) + as.numeric(bayarea_employed_2016$HD01_VD49) + as.numeric(bayarea_employed_2016$HD01_VD54) + as.numeric(bayarea_employed_2016$HD01_VD56) + as.numeric(bayarea_employed_2016$HD01_VD101) + as.numeric(bayarea_employed_2016$HD01_VD103) + as.numeric(bayarea_employed_2016$HD01_VD108) + as.numeric(bayarea_employed_2016$HD01_VD110) + as.numeric(bayarea_employed_2016$HD01_VD115) + as.numeric(bayarea_employed_2016$HD01_VD117) + as.numeric(bayarea_employed_2016$HD01_VD122) + as.numeric(bayarea_employed_2016$HD01_VD124) + as.numeric(bayarea_employed_2016$HD01_VD129) + as.numeric(bayarea_employed_2016$HD01_VD131) + as.numeric(bayarea_employed_2016$HD01_VD136) + as.numeric(bayarea_employed_2016$HD01_VD138) + as.numeric(bayarea_employed_2016$HD01_VD143) + as.numeric(bayarea_employed_2016$HD01_VD145)
+
+#MOE bayarea_employed_2016 Civilian and Armed Forces, 20-60
+#moe_bayarea_employed_2016_pop_20to60_2015 <- sqrt(HD02_VD12^2 + HD02_VD14^2 + HD02_VD19^2 + HD02_VD21^2 + HD02_VD26^2 + HD02_VD28^2 + HD02_VD33^2 + HD02_VD35^2 + HD02_VD40^2 + HD02_VD42^2 + HD02_VD47^2 + HD02_VD49^2 + HD02_VD54^2 + HD02_VD56^2 + HD02_VD101^2 + HD02_VD103^2 + HD02_VD108^2 + HD02_VD110^2 + HD02_VD115^2 + HD02_VD117^2 + HD02_VD122^2 + HD02_VD124^2 + HD02_VD129^2 + HD02_VD131^2 + HD02_VD136^2 + HD02_VD138^2 + HD02_VD143^2 + HD02_VD145^2)
+
+#"Percent employed in Civilian or Armed Forces, 20-60"
+bayarea_employed_2016$pct_employed_20to60_2016 <- bayarea_employed_2016$employed_pop_20to60_2016/bayarea_employed_2016$pop_20to60_2016
+
+#"MOE Percent bayarea_employed_2016 in Civilian or Armed Forces, 20-60"
+#moe_pct_bayarea_employed_2016_20to60_2016 <-  sqrt(moe_bayarea_employed_2016_pop_20to60_2016^2-(pct_bayarea_employed_2016_20to60_2016^2*moe_pop_20to60_2016^2))/pop_20to60_2016
+
+#Descriptive Statistics
+bayarea_stats_employed_2016 <- summarise(bayarea_employed_2016, mean_pct_employed_20to60_2016 = mean(bayarea_employed_2016$pct_employed_20to60_2016, na.rm=T), sd_pct_employed_20to60_2016=sd(bayarea_employed_2016$pct_employed_20to60_2016, na.rm = T), CV=sd(bayarea_employed_2016$pct_employed_20to60_2016, na.rm = T)/mean(bayarea_employed_2016$pct_employed_20to60_2016, na.rm=T))
+
+bayarea_employed_2016$zscores <- (bayarea_employed_2016$pct_employed_20to60_2016 - bayarea_stats_employed_2016$mean_pct_employed_20to60_2016)/bayarea_stats_employed_2016$sd_pct_employed_20to60_2016
+
+bayarea_employed_2016$Reliablty <- if_else((bayarea_employed_2016$pct_employed_20to60_2016 * 0.3) < bayarea_stats_employed_2016$CV, "Unreliable", "Reliable", missing="NA")
+#summary(bayarea_employed_2016) #To check number of NA's
+```
+
+### Housing & Neighborhood Domain
+
+#### i. Neighborhood Poverty Rate 200FPL
+```{r Neighborhood Poverty Rate 200FPL, echo=FALSE}
+povr <- select(povr, GEO.id, GEO.id2, HD01_VD01, HD02_VD01, HD01_VD08, HD02_VD08)
+
+colnames(povr) <- c("longID", "tractID", "est_total_2016", "moe_total_2016","est_2xFPL_2016","moe_pct2fpl")
+
+povr <- povr[-c(1),,drop=F]
+
+povr_2016 <- povr
+povr_2016 <- mutate(povr_2016, longID=as.character(longID), 
+               tractID=as.character(tractID), 
+               est_total_2016 = as.numeric(est_total_2016),
+               moe_total_2016 = as.numeric(moe_total_2016),
+               est_2xFPL_2016 = as.numeric(est_2xFPL_2016),
+               moe_pct2fpl = as.numeric(moe_pct2fpl))
+               
+glimpse(povr_2016)
+nrow(povr_2016)
+
+#Extract
+povr_2016$CountyID <- substr(povr_2016$tractID, 1,5)
+
+bayarea_povr_2016 <- filter(povr_2016, CountyID=="06001" | CountyID=="06013" | CountyID=="06041" | CountyID=="06055" | CountyID=="06075" | CountyID=="06081" | CountyID=="06085" | CountyID=="06095" | CountyID=="06097")
+
+nrow(bayarea_povr_2016)
+
+#Descriptive Statistics
+#Neighborhood poverty rate in the bay area
+bayarea_povr_2016$p_2xFPL_2016 <- (bayarea_povr_2016$est_2xFPL_2016/bayarea_povr_2016$est_total_2016)
+
+bayarea_stats_povr_2016 <- summarise(bayarea_povr_2016, mean_p_2xFPL_2016 = mean(bayarea_povr_2016$p_2xFPL_2016, na.rm=T), sd_p_2xFPL_2016=sd(bayarea_povr_2016$p_2xFPL_2016, na.rm = T), CV=sd(bayarea_povr_2016$p_2xFPL_2016, na.rm = T)/mean(bayarea_povr_2016$p_2xFPL_2016, na.rm = T))
+
+bayarea_povr_2016$zscores <- (bayarea_povr_2016$p_2xFPL_2016 - bayarea_stats_povr_2016$mean_p_2xFPL_2016)/bayarea_stats_povr_2016$sd_p_2xFPL_2016
+
+bayarea_povr_2016$adj_zscores <- bayarea_povr_2016$zscores * -1
+
+bayarea_povr_2016$Reliablty <- if_else((bayarea_povr_2016$p_2xFPL_2016 * 0.3) < bayarea_stats_povr_2016$CV, "Unreliable", "Reliable", missing="NA")
+
+#summary(bayarea_povr_2016) #To check number of NA's
+```
+
+#### ii. Health Insurance
+```{r Health Insurance, echo=FALSE}
+insurance <- select(insurance, GEO.id, GEO.id2, HC01_EST_VC20,
+HC01_MOE_VC20,
+HC02_EST_VC20,
+HC02_MOE_VC20,
+HC04_EST_VC20,
+HC04_MOE_VC20,
+HC01_EST_VC21,
+HC01_MOE_VC21,
+HC02_EST_VC21,
+HC02_MOE_VC21,
+HC04_EST_VC21,
+HC04_MOE_VC21)
+
+colnames(insurance) <- c("longID", "tractID", "EST_M",
+"MOE_M",
+"EST_M_INS",
+"MOE_M_INS",
+"EST_M_UINS",
+"MOE_M_UINS",
+"EST_F",
+"MOE_F",
+"EST_F_INS",
+"MOE_F_INS",
+"EST_F_UINS",
+"MOE_F_UINS")
+
+insurance <- insurance[-c(1), , drop=F]
+
+insurance_2016 <- insurance
+
+insurance_2016 <- mutate(insurance_2016, longID=as.character(longID), 
+               tractID=as.character(tractID), 
+               EST_M = as.numeric(EST_M),
+               MOE_M = as.numeric(MOE_M),
+               EST_M_INS = as.numeric(EST_M_INS),
+               MOE_M_INS = as.numeric(MOE_M_INS),
+               EST_M_UINS = as.numeric(EST_M_UINS),
+               MOE_M_UINS = as.numeric(MOE_M_UINS),
+               EST_F = as.numeric(EST_F),
+               MOE_F = as.numeric(MOE_F),
+               EST_F_INS = as.numeric(EST_F_INS),
+               MOE_F_INS = as.numeric(MOE_F_INS),
+               EST_F_UINS = as.numeric(EST_F_UINS),
+               MOE_F_UINS = as.numeric(MOE_F_UINS))
+               
+glimpse(insurance_2016)
+nrow(insurance_2016)
+
+#Extract
+insurance_2016$CountyID <- substr(insurance_2016$tractID, 1,5)
+
+bayarea_insurance_2016 <- filter(insurance_2016, CountyID=="06001" | CountyID=="06013" | CountyID=="06041" | CountyID=="06055" | CountyID=="06075" | CountyID=="06081" | CountyID=="06085" | CountyID=="06095" | CountyID=="06097")
+
+nrow(bayarea_insurance_2016)
+
+#Descriptive Statistics
+bayarea_insurance_2016$total_pop <- bayarea_insurance_2016$EST_M + bayarea_insurance_2016$EST_F
+bayarea_insurance_2016$Insured <- bayarea_insurance_2016$EST_M_INS + bayarea_insurance_2016$EST_F_INS
+bayarea_insurance_2016$p_Insured <- bayarea_insurance_2016$Insured / bayarea_insurance_2016$total_pop
+
+bayarea_stats_insurance_2016 <- summarise(bayarea_insurance_2016, mean_p_Insured = mean(bayarea_insurance_2016$p_Insured, na.rm=T), sd_p_Insured=sd(bayarea_insurance_2016$p_Insured, na.rm = T), CV=sd(bayarea_insurance_2016$p_Insured, na.rm = T)/mean(bayarea_insurance_2016$p_Insured, na.rm = T))
+
+bayarea_insurance_2016$Reliablty <- if_else((bayarea_insurance_2016$p_Insured * 0.3) < bayarea_stats_insurance_2016$CV, "Unreliable", "Reliable", missing="NA")
+#summary(bayarea_insurance_2016) #To check number of NA's
+```
+
+#### ii. Health Insurance
+```{r House Ownership, echo=FALSE}
+owneroccupied <- select(owneroccupied, GEO.id, GEO.id2, HD01_VD01, HD02_VD01, HD01_VD02, HD02_VD02, HD01_VD03, HD02_VD03)
+
+colnames(owneroccupied) <- c("longID","tractID","est_total", "moe_total","est_owner","moe_owner","est_renter","moe_renter")
+
+owneroccupied <- owneroccupied[-c(1), , drop=F]
+
+owneroccupied_2016 <- owneroccupied
+owneroccupied_2016 <- mutate(owneroccupied_2016, longID=as.character(longID), tractID=as.character(tractID), est_total=as.numeric(est_total),moe_total=as.numeric(moe_total),est_owner=as.numeric(est_owner), moe_owner=as.numeric(moe_owner), est_renter=as.numeric(est_renter),
+moe_renter=as.numeric(moe_renter))
+
+#owneroccupied %>% group_by(owneroccupied$est_owner) %>% summarize(mean_owner = mean(owneroccupied$est_owner))
+```
+
+```{r Testing Reliability 2, eval=FALSE, include=FALSE}
+#CV <- c(CV, bayarea_stats_adulted_2016$CV, bayarea_stats_insurance_2016$CV)
+```
+
+```{r Converting to Data frame for merging, echo=FALSE}
+# convert to a data.frame for merging
+#income_df <- data.frame(paste0(str_pad(income@geography$state, 2, "left", pad="0"), 
+#                               str_pad(income@geography$county, 3, "left", pad="0"), 
+#                               str_pad(income@geography$tract, 6, "left", pad="0")), 
+#                        income@estimate[,c("Household Income: Total:",
+#                                           "Household Income: $200,000 or more")], 
+#                        stringsAsFactors = FALSE)
+#income_df <- select(income_df, 1:3)
+#rownames(income_df)<-1:nrow(income_df)
+#names(income_df)<-c("GEOID", "total", "over_200")
+
+# Merging
+#income_merged<- geo_join(tracts, income_df, "GEOID", "GEOID")
+# there are some tracts with no land that we should exclude
+#income_merged <- income_merged[income_merged$ALAND>0,]
+
+# Assuming that we have a normal distribution, or just plot it
+#normal <- rnorm(1583, mean = 1014.83, sd = 870.6773)
+#rm(normal)
+#plot(adulted$p_baplus_2016)
+#hist(adulted$p_baplus_2016)
+```
+## 5. Export the results:
+Note: Number of records in ACS: 1,588; Number of tracts in shapefile: 1,582; Out of the 1,588 records, nine records are NULL, while six were not in the shapefile and three have tractIDs:
+
+1. 06095980000 - Travis Air Force Base in Fairfield, 
+2. 06081984300 - an airport in San Francisco, and 
+3. 06075980401 - two Islands southwest of the Bay Area
+```{r Export the results, include=FALSE}
+write_csv(bayarea_adulted_2016, "bayarea_adulted_2016.csv",na ="NA") 
+write_csv(bayarea_employed_2016, "bayarea_employed_2016.csv",na ="NA")
+write_csv(bayarea_insurance_2016, "bayarea_insurance_2016.csv",na ="NA")
+write_csv(bayarea_mhval_2016, "bayarea_mhval_2016.csv",na ="NA")
+write_csv(bayarea_passist_2016, "bayarea_passist_2016.csv",na ="NA")
+write_csv(bayarea_povr_2016, "bayarea_povr_2016.csv",na ="NA")
+write_csv(owneroccupied_2016, "owneroccupied_2016.csv",na ="NA")
+```
+```{r Export the results 2, include=TRUE}
+file.exists("bayarea_adulted_2016.csv","bayarea_employed_2016.csv","bayarea_insurance_2016.csv","bayarea_mhval_2016.csv","bayarea_passist_2016.csv","bayarea_povr_2016.csv")
+```
+
+```{r Calculates Z-scores, echo=FALSE}
+# THIS SECTION CALCULATES Z-SCORES
+
+#Load the exported file
+#test_adulted <- read.csv('adulted_2016.csv')
+#p_baplus_2016 <- test_adulted$p_baplus_2016
+#test_adulted <- mutate(test_adulted, longID=as.character(longID), #use id or GEO.id
+#                       tractID=as.character(tractID), #use id2 or GEO.id2
+#                       p_baplus_2016 = as.numeric(p_baplus_2016),
+#                       moe_p_baplus_2016 = as.numeric(moe_p_baplus_2016))
+#str(test_adulted)
+#test_adulted[, tractID := str_pad(tractID, 11, pad = "0")] # to pad zero(s) if needed
+#hist(p_baplus_2016) #histogram
+
+#population parameter calculations original
+#E_ADED_sd <- sd(height)*sqrt((length(height)-1)/(length(height)))
+#E_ADED_mean <- mean(height)
+
+#population parameter calculations, did not work
+#test_adulted_sd <- sd(p_baplus_2016)*sqrt((length(p_baplus_2016)-1)/(length(p_baplus_2016)))
+#test_adulted_mean <- mean(p_baplus_2016)
+
+#z-score calculation
+#test_adulted_zscore <- (p_baplus_2016 - mean_and_sd$mean_p_baplus_2016)/mean_and_sd$sd_p_baplus_2016
+
+#z-score calculation
+#E_ADED_zscore <- (72 - E_ADED_mean)/E_ADED_sd
+```
+
+```{r Mapping, echo=FALSE}
+# Make a map out of leaflet
+#popup <- paste0("GEOID: ", income_merged$GEOID, "<br>", "Percent of : ", round(E_ADED_zscore$percentcolumn,2))
+#pal <- colorNumeric(
+#  palette = "YlGnBu",
+#  domain = E_ADED_zscore$percentcolumn
+#)
+
+#map3<-leaflet() %>%
+#  addProviderTiles("CartoDB.Positron") %>%
+#  addPolygons(data = E_ADED_zscore$percentcolumn
+```

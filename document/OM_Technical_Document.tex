@@ -1,0 +1,752 @@
+\documentclass[]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\usepackage{fixltx2e} % provides \textsubscript
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+\else % if luatex or xelatex
+  \ifxetex
+    \usepackage{mathspec}
+  \else
+    \usepackage{fontspec}
+  \fi
+  \defaultfontfeatures{Ligatures=TeX,Scale=MatchLowercase}
+\fi
+% use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+% use microtype if available
+\IfFileExists{microtype.sty}{%
+\usepackage{microtype}
+\UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\usepackage[margin=1in]{geometry}
+\usepackage{hyperref}
+\hypersetup{unicode=true,
+            pdftitle={Phuong's Working Document},
+            pdfborder={0 0 0},
+            breaklinks=true}
+\urlstyle{same}  % don't use monospace font for urls
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.77,0.63,0.00}{#1}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\usepackage{graphicx,grffile}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+\IfFileExists{parskip.sty}{%
+\usepackage{parskip}
+}{% else
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt plus 2pt minus 1pt}
+}
+\setlength{\emergencystretch}{3em}  % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{0}
+% Redefines (sub)paragraphs to behave more like sections
+\ifx\paragraph\undefined\else
+\let\oldparagraph\paragraph
+\renewcommand{\paragraph}[1]{\oldparagraph{#1}\mbox{}}
+\fi
+\ifx\subparagraph\undefined\else
+\let\oldsubparagraph\subparagraph
+\renewcommand{\subparagraph}[1]{\oldsubparagraph{#1}\mbox{}}
+\fi
+
+%%% Use protect on footnotes to avoid problems with footnotes in titles
+\let\rmarkdownfootnote\footnote%
+\def\footnote{\protect\rmarkdownfootnote}
+
+%%% Change title format to be more compact
+\usepackage{titling}
+
+% Create subtitle command for use in maketitle
+\providecommand{\subtitle}[1]{
+  \posttitle{
+    \begin{center}\large#1\end{center}
+    }
+}
+
+\setlength{\droptitle}{-2em}
+
+  \title{Phuong's Working Document}
+    \pretitle{\vspace{\droptitle}\centering\huge}
+  \posttitle{\par}
+    \author{}
+    \preauthor{}\postauthor{}
+    \date{}
+    \predate{}\postdate{}
+  
+
+\begin{document}
+\maketitle
+
+{
+\setcounter{tocdepth}{2}
+\tableofcontents
+}
+\section{Description of the document}\label{description-of-the-document}
+
+\begin{quote}
+This is the Opportunity Mapping 2.0 Technical Document produced by the
+Phuong Tseng. The intention is to capture changes and developments in
+the 2019 version.
+\end{quote}
+
+\section{The Methodology Document}\label{the-methodology-document}
+
+OM\_methodology\_v4\_Nov30.pdf
+
+\subsection{Set-up}\label{set-up}
+
+\subsection{A. The Domains}\label{a.-the-domains}
+
+In 2019, there are 5 domains: education, economic \& mobility, housing
+and neighborhood, conduit, and social capital. The social capital domain
+is a new domain in 2019.
+
+\subsubsection{1. Education Opportunity
+Indicators}\label{education-opportunity-indicators}
+
+This year, the education domain added a new indicator called Early
+Childhood Participation Rate or Pre-K. Another indicator, adult with
+bachelor's degree was moved from the education domain to the economic \&
+mobility domain in 2019.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{edu_list <-}
+\StringTok{  }\KeywordTok{c}\NormalTok{(}
+  \StringTok{"fips"}\NormalTok{,}
+  \StringTok{"CountyID.x"}\NormalTok{,}
+  \StringTok{"TOTPOP.x"}\NormalTok{,}
+  \StringTok{"math_prof"}\NormalTok{,}
+  \StringTok{"read_prof"}\NormalTok{,}
+  \StringTok{"grad_rate"}\NormalTok{,}
+  \StringTok{"pct_not_frpm"}\NormalTok{,}
+  \StringTok{"z_math_prof"}\NormalTok{,}
+  \StringTok{"z_read_prof"}\NormalTok{,}
+  \StringTok{"z_grad_rate"}\NormalTok{,}
+  \StringTok{"az_pct_not_frpm"}\NormalTok{,}
+  \StringTok{"county_name.x"}\NormalTok{,}
+  \StringTok{"HD01_VD04"}\NormalTok{,}
+  \StringTok{"HD01_VD03"}\NormalTok{,}
+  \StringTok{"ratio"}\NormalTok{,}
+  \StringTok{"ratio2"}\NormalTok{,}
+  \StringTok{"z_preK"}
+\NormalTok{  )}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{2. Economic \& Mobility Opportunity
+Indicators}\label{economic-mobility-opportunity-indicators}
+
+There are a few changes to this domain in 2019. The adult with
+bachelor's degree was added to this domain, median household income, and
+median household value. Other indicators such as the commuting time and
+entry-level jobs' measures were changed to TCAC's measures. A new
+indicator, school district revenue per capita, was added to capture the
+extent of municipal hoarding. Due to reliability issues of municipal
+data, school district boundary was used as a proxy instead.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{econ_list <-}\StringTok{ }\KeywordTok{c}\NormalTok{(}
+  \StringTok{"fips"}\NormalTok{,}
+  \StringTok{"CountyID.x"}\NormalTok{,}
+  \StringTok{"TOTPOP.x"}\NormalTok{,}
+  \StringTok{"total_pop_2017"}\NormalTok{,}
+  \StringTok{"below_200_pov_2017.x"}\NormalTok{,}
+  \StringTok{"moe_below_200_pov_2017.x"}\NormalTok{,}
+  \StringTok{"pct_below_pov_2017"}\NormalTok{,}
+  \StringTok{"moe_pct_below_pov_2017"}\NormalTok{,}
+  \StringTok{"pct_below_200_pov_2017.x"}\NormalTok{,}
+  \StringTok{"pct_assist_2017"}\NormalTok{,}
+  \StringTok{"med_hhincome_2017"}\NormalTok{ ,}
+  \StringTok{"moe_med_hhincome_2017"}\NormalTok{ ,}
+  \StringTok{"employed_pop_20to60_2017"}\NormalTok{,}
+  \StringTok{"pct_employed_20to60_2017"}\NormalTok{,}
+  \StringTok{"home_value_2017"}\NormalTok{ ,}
+  \StringTok{"moe_home_value_2017"}\NormalTok{,}
+  \StringTok{"pct_bachelors_plus_2017"}\NormalTok{,}
+  \StringTok{"above_200_pov_2017"}\NormalTok{,}
+  \StringTok{"pct_above_200_pov_2017"}\NormalTok{,}
+  \StringTok{"tot_hh_2017"}\NormalTok{,}
+  \StringTok{"moe_tot_hh_2017"}\NormalTok{,}
+  \StringTok{"moe_pct_long_commute_2017"}\NormalTok{,}
+  \StringTok{"moe_assist_2017"}\NormalTok{,}
+  \StringTok{"moe_long_commute_pct"}\NormalTok{,}
+  \StringTok{"long_commute_pct"}\NormalTok{,}
+  \StringTok{"low_wage_med_distance"}\NormalTok{ ,}
+  \StringTok{"jobs_lowed"}\NormalTok{ ,}
+  \StringTok{"rural_flag"}\NormalTok{,}
+  \StringTok{"az_pct_assist_2017"}\NormalTok{ ,}
+  \StringTok{"az_pct_employed_20to60_2017"}\NormalTok{,}
+  \StringTok{"z_home_value_2017"}\NormalTok{ ,}
+  \StringTok{"z_pct_bachelors_plus_2017"}\NormalTok{ ,}
+  \StringTok{"az_pct_long_commute_2017"}\NormalTok{,}
+  \StringTok{"z_jobs_lowed"}\NormalTok{ ,}
+  \StringTok{"Econ_Domain"}\NormalTok{,}
+  \StringTok{"z_sdrevpcap"}\NormalTok{,}
+  \StringTok{"sdrev"}\NormalTok{,}
+  \StringTok{"sdrevpcap"}\NormalTok{,}
+  \StringTok{"sd_totpop"}
+\NormalTok{  )}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{3. Housing \& Neighborhood Opportunity
+Indicators}\label{housing-neighborhood-opportunity-indicators}
+
+The housing and neighborhood opportunity domain has two new
+environmental indicators pulled from CalEnviroScreen (i.e.~pm25, lead).
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{housing_list <-}
+\StringTok{  }\KeywordTok{c}\NormalTok{(}
+  \StringTok{"fips"}\NormalTok{,}
+  \StringTok{"CountyID.x"}\NormalTok{ ,}
+  \StringTok{"TOTPOP.x"}\NormalTok{,}
+  \StringTok{"county_name.x"}\NormalTok{,}
+  \StringTok{"below_200_pov_2017.y"}\NormalTok{,}
+  \StringTok{"moe_below_200_pov_2017.y"}\NormalTok{,}
+  \StringTok{"pct_below_200_pov_2017.y"}\NormalTok{,}
+  \StringTok{"pm25"}\NormalTok{,}
+  \StringTok{"pct_pm25"}\NormalTok{,}
+  \StringTok{"toxRelease"}\NormalTok{,}
+  \StringTok{"pct_toxRelease"}\NormalTok{,}
+  \StringTok{"lead_pctl"}\NormalTok{,}
+  \StringTok{"pct_lead_pctl"}\NormalTok{ ,}
+  \StringTok{"Grocery"}\NormalTok{,}
+  \StringTok{"z_Grocery"}\NormalTok{ ,}
+  \StringTok{"az_Grocery"}\NormalTok{,}
+  \StringTok{"P_INSURED"}\NormalTok{ ,}
+  \StringTok{"az_insurance"}\NormalTok{ ,}
+  \StringTok{"H_Crime"}\NormalTok{,}
+  \StringTok{"pct_parks"}\NormalTok{,}
+  \StringTok{"az_pct_below_200_pov_2017"}\NormalTok{,}
+  \StringTok{"az_pct_below_200_pov_20172"}\NormalTok{,}
+  \StringTok{"az_pct_pm25"}\NormalTok{,}
+  \StringTok{"az_pct_toxRelease"}\NormalTok{,}
+  \StringTok{"az_pct_lead_pctl"}\NormalTok{ ,}
+  \StringTok{"Housing_Env_Domain"}\NormalTok{,}
+  \StringTok{"test_azcrime"}\NormalTok{ ,}
+  \StringTok{"azhealthcare"}\NormalTok{ ,}
+  \StringTok{"zparks"}
+\NormalTok{  )}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{4. Conduit}\label{conduit}
+
+The Conduit domain has two indicators: median broadband download speed
+and percentage of single-parent households.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{conduit_list <-}
+\StringTok{  }\KeywordTok{c}\NormalTok{(}
+  \StringTok{"fips"}\NormalTok{,}
+  \StringTok{"CountyID.x"}\NormalTok{,}
+  \StringTok{"TOTPOP.x"}\NormalTok{,}
+  \StringTok{"pct_singleparent_hh_2017.y"}\NormalTok{,}
+  \StringTok{"moe_pct_singleparent_hh_2017.y"}\NormalTok{,}
+  \StringTok{"az_pct_singleparent_hh_2017"}\NormalTok{,}
+  \StringTok{"TOTPOP.y"}\NormalTok{,}
+  \StringTok{"Median_bb"}\NormalTok{,}
+  \StringTok{"z_broadband"}\NormalTok{,}
+  \StringTok{"z_broadband2"}\NormalTok{,}
+  \StringTok{"Conduit"}
+\NormalTok{  )}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{5. Social Capital}\label{social-capital}
+
+This is our newest domain, which has the average distance to a religious
+institution, registered voters voting rate, and average distance to club
+membership and etc.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{socap_list <-}
+\StringTok{  }\KeywordTok{c}\NormalTok{(}
+  \StringTok{"fips"}\NormalTok{,}
+  \StringTok{"CountyID.x"}\NormalTok{,}
+  \StringTok{"TOTPOP.x"}\NormalTok{,}
+  \StringTok{"pct_singleparent_hh_2017.y"}\NormalTok{,}
+  \StringTok{"moe_pct_singleparent_hh_2017.y"}\NormalTok{,}
+  \StringTok{"az_pct_singleparent_hh_2017"}\NormalTok{,}
+  \StringTok{"Clubs"}\NormalTok{,}
+  \StringTok{"AVGDIS_REL"}\NormalTok{,}
+  \StringTok{"reg_vote"}\NormalTok{,}
+  \StringTok{"SOCIAL_CAP"}\NormalTok{,}
+  \StringTok{"z_regvoter"}\NormalTok{,}
+  \StringTok{"zreligious"}\NormalTok{,}
+  \StringTok{"zclubs"}
+\NormalTok{  )}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{6. Compile All Indicators
+Function}\label{compile-all-indicators-function}
+
+\subsubsection{7. Calculate Domains}\label{calculate-domains}
+
+\subsection{B. Index Calculation}\label{b.-index-calculation}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{data}\OperatorTok{$}\NormalTok{index <-}\StringTok{ }\NormalTok{(data}\OperatorTok{$}\NormalTok{housing_domain }\OperatorTok{+}\StringTok{ }\NormalTok{data}\OperatorTok{$}\NormalTok{edu_domain }\OperatorTok{+}\StringTok{ }\NormalTok{data}\OperatorTok{$}\NormalTok{econ_domain }\OperatorTok{+}\StringTok{ }\NormalTok{data}\OperatorTok{$}\NormalTok{Socap_domain }\OperatorTok{+}\StringTok{ }\NormalTok{data}\OperatorTok{$}\NormalTok{Conduit_domain)}\OperatorTok{/}\DecValTok{5}
+
+\CommentTok{#df <- data %>% select(fips,housing_domain,edu_domain,econ_domain,Socap_domain, Conduit_domain, index) %>% filter(is.na(index))}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{C. Filters}\label{c.-filters}
+
+\subsubsection{1. Filtering Single parent families \textgreater{}=
+30\%}\label{filtering-single-parent-families-30}
+
+returns 471 records with 8 NAs
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{#filter_function <- function(data, variable1, variabl2, value, value2)\{}
+\CommentTok{#  data$variable1[which(data$variable2)] <- value2}
+\CommentTok{#  return(data$variable)}
+\CommentTok{#\}}
+
+\NormalTok{data}\OperatorTok{$}\NormalTok{SPF_GT_}\DecValTok{30}\NormalTok{[}\KeywordTok{which}\NormalTok{(data}\OperatorTok{$}\NormalTok{pct_singleparent_hh_}\FloatTok{2017.}\NormalTok{y}\OperatorTok{<}\FloatTok{0.3}\NormalTok{)] <-}\StringTok{ }\DecValTok{0}
+
+\NormalTok{data}\OperatorTok{$}\NormalTok{SPF_GT_}\DecValTok{30}\NormalTok{[}\KeywordTok{which}\NormalTok{(data}\OperatorTok{$}\NormalTok{pct_singleparent_hh_}\FloatTok{2017.}\NormalTok{y}\OperatorTok{>=}\FloatTok{0.3}\NormalTok{)] <-}\StringTok{ }\OperatorTok{-}\DecValTok{1} \CommentTok{#471 records}
+
+\NormalTok{data}\OperatorTok{$}\NormalTok{flag_spf <-}\StringTok{ }\KeywordTok{ifelse}\NormalTok{(}\KeywordTok{is.na}\NormalTok{(data}\OperatorTok{$}\NormalTok{SPF_GT_}\DecValTok{30}\NormalTok{), }\DecValTok{0}\NormalTok{, data}\OperatorTok{$}\NormalTok{SPF_GT_}\DecValTok{30}\NormalTok{)}
+
+\KeywordTok{summary}\NormalTok{(data}\OperatorTok{$}\NormalTok{flag_spf) }\CommentTok{#fixed NAs to 0, 471 records}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+## -1.0000 -1.0000  0.0000 -0.2983  0.0000  0.0000
+\end{verbatim}
+
+\subsubsection{2. Filtering Poverty (below 200 FPL) \textgreater{}=
+30\%}\label{filtering-poverty-below-200-fpl-30}
+
+returns 418 records with 3 NAs
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{data}\OperatorTok{$}\NormalTok{POVR200_GT_}\DecValTok{30}\NormalTok{[}\KeywordTok{which}\NormalTok{(data}\OperatorTok{$}\NormalTok{pct_below_200_pov_}\FloatTok{2017.}\NormalTok{x}\OperatorTok{<}\FloatTok{0.3}\NormalTok{)] <-}\StringTok{ }\DecValTok{0}
+
+\NormalTok{data}\OperatorTok{$}\NormalTok{POVR200_GT_}\DecValTok{30}\NormalTok{[}\KeywordTok{which}\NormalTok{(data}\OperatorTok{$}\NormalTok{pct_below_200_pov_}\FloatTok{2017.}\NormalTok{x}\OperatorTok{>=}\FloatTok{0.3}\NormalTok{)] <-}\StringTok{ }\OperatorTok{-}\DecValTok{1} \CommentTok{#418}
+
+\NormalTok{data}\OperatorTok{$}\NormalTok{POVR200_GT_}\DecValTok{30}\NormalTok{ <-}\StringTok{ }\KeywordTok{ifelse}\NormalTok{(}\KeywordTok{is.na}\NormalTok{(data}\OperatorTok{$}\NormalTok{POVR200_GT_}\DecValTok{30}\NormalTok{), }\DecValTok{0}\NormalTok{, data}\OperatorTok{$}\NormalTok{POVR200_GT_}\DecValTok{30}\NormalTok{)}
+
+\KeywordTok{sum}\NormalTok{(data}\OperatorTok{$}\NormalTok{POVR200_GT_}\DecValTok{30}\NormalTok{) }\CommentTok{#418}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] -418
+\end{verbatim}
+
+\subsubsection{3. Filtering Single parent \textgreater{}= 30\% AND
+Poverty (below 200 FPL) \textgreater{}=
+30\%}\label{filtering-single-parent-30-and-poverty-below-200-fpl-30}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{data}\OperatorTok{$}\NormalTok{SPF30_P30[}\KeywordTok{which}\NormalTok{(data}\OperatorTok{$}\NormalTok{flag_spf}\OperatorTok{==}\DecValTok{0} \OperatorTok{|}\StringTok{ }\NormalTok{data}\OperatorTok{$}\NormalTok{POVR200_GT_}\DecValTok{30}\OperatorTok{==}\DecValTok{0}\NormalTok{)] <-}\StringTok{ }\DecValTok{0}
+
+\NormalTok{data}\OperatorTok{$}\NormalTok{SPF30_P30[}\KeywordTok{which}\NormalTok{(data}\OperatorTok{$}\NormalTok{flag_spf}\OperatorTok{==-}\DecValTok{1} \OperatorTok{&}\StringTok{ }\NormalTok{data}\OperatorTok{$}\NormalTok{POVR200_GT_}\DecValTok{30}\OperatorTok{==-}\DecValTok{1}\NormalTok{)] <-}\StringTok{ }\OperatorTok{-}\DecValTok{1}
+
+\KeywordTok{summary}\NormalTok{(data}\OperatorTok{$}\NormalTok{SPF30_P30) }\CommentTok{#fixed NAs to 0}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+## -1.0000  0.0000  0.0000 -0.1849  0.0000  0.0000
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{sum}\NormalTok{(data}\OperatorTok{$}\NormalTok{SPF30_P30) }\CommentTok{#292}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] -292
+\end{verbatim}
+
+\subsubsection{4. High Divergence and population of Black and Latinx
+\textgreater{}
+50\%}\label{high-divergence-and-population-of-black-and-latinx-50}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{load}\NormalTok{(}\KeywordTok{here}\NormalTok{(}\StringTok{"data"}\NormalTok{, }\StringTok{"input_DI.RData"}\NormalTok{))}
+
+\NormalTok{input_DI}\OperatorTok{$}\NormalTok{Flag_HighDI_Blk_Lat[}\KeywordTok{which}\NormalTok{(input_DI}\OperatorTok{$}\NormalTok{Black_Latinx}\OperatorTok{<=}\FloatTok{0.5} \OperatorTok{|}\StringTok{ }\NormalTok{input_DI}\OperatorTok{$}\NormalTok{divergence_thresh}\OperatorTok{<}\DecValTok{3}\NormalTok{)] <-}\StringTok{ }\DecValTok{0}
+
+\NormalTok{input_DI}\OperatorTok{$}\NormalTok{Flag_HighDI_Blk_Lat[}\KeywordTok{which}\NormalTok{(input_DI}\OperatorTok{$}\NormalTok{Black_Latinx}\OperatorTok{>}\FloatTok{0.5} \OperatorTok{&}\StringTok{ }\NormalTok{input_DI}\OperatorTok{$}\NormalTok{divergence_thresh}\OperatorTok{==}\DecValTok{3}\NormalTok{)] <-}\StringTok{ }\OperatorTok{-}\DecValTok{1}
+
+\NormalTok{data}\OperatorTok{$}\NormalTok{fips <-}\StringTok{ }\KeywordTok{paste0}\NormalTok{(}\DecValTok{0}\NormalTok{,data}\OperatorTok{$}\NormalTok{fips)}
+\NormalTok{data <-}\StringTok{ }\KeywordTok{merge}\NormalTok{(data,input_DI, }\DataTypeTok{by=}\StringTok{"fips"}\NormalTok{)}
+\KeywordTok{sum}\NormalTok{(data}\OperatorTok{$}\NormalTok{Flag_HighDI_Blk_Lat) }\CommentTok{#201 no NAs}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] -201
+\end{verbatim}
+
+\subsubsection{5. High Divergence with population of Black and Latinx
+\textgreater{} 50\% and poverty (below 200 FPL) \textgreater{}=
+30\%}\label{high-divergence-with-population-of-black-and-latinx-50-and-poverty-below-200-fpl-30}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{data}\OperatorTok{$}\NormalTok{DI_Blk_Lat_POV30[}\KeywordTok{which}\NormalTok{((data}\OperatorTok{$}\NormalTok{Black_Latinx }\OperatorTok{<}\StringTok{ }\FloatTok{0.5} \OperatorTok{&}\StringTok{ }\NormalTok{data}\OperatorTok{$}\NormalTok{divergence_thresh }\OperatorTok{!=}\StringTok{ }\DecValTok{3}\NormalTok{) }\OperatorTok{|}\StringTok{ }\NormalTok{(data}\OperatorTok{$}\NormalTok{POVR200_GT_}\DecValTok{30} \OperatorTok{==}\StringTok{ }\DecValTok{0}\NormalTok{))] <-}\StringTok{ }\DecValTok{0}
+\KeywordTok{sum}\NormalTok{(data}\OperatorTok{$}\NormalTok{DI_Blk_Lat_POV30)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] NA
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{#filter_na <- data %>% select(fips, county_name,DI_Blk_Lat_POV30,Black_Latinx,divergence_thresh,POVR200_GT_30) %>%  filter(is.na(data$DI_Blk_Lat_POV30))}
+
+\NormalTok{data}\OperatorTok{$}\NormalTok{DI_Blk_Lat_POV30[}\KeywordTok{which}\NormalTok{((data}\OperatorTok{$}\NormalTok{Black_Latinx }\OperatorTok{>}\StringTok{ }\FloatTok{0.5} \OperatorTok{&}\StringTok{ }\NormalTok{data}\OperatorTok{$}\NormalTok{divergence_thresh }\OperatorTok{==}\StringTok{ }\DecValTok{3}\NormalTok{) }\OperatorTok{&}\StringTok{ }\NormalTok{(data}\OperatorTok{$}\NormalTok{POVR200_GT_}\DecValTok{30} \OperatorTok{==}\StringTok{ }\OperatorTok{-}\DecValTok{1}\NormalTok{))] <-}\StringTok{ }\OperatorTok{-}\DecValTok{1}
+\CommentTok{#320}
+\KeywordTok{sum}\NormalTok{(data}\OperatorTok{$}\NormalTok{POVR200_GT_}\DecValTok{30}\NormalTok{) }\CommentTok{#418 no NAs}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] -418
+\end{verbatim}
+
+\subsubsection{6. Final Filter}\label{final-filter}
+
+High Divergence with population of Black and Latinx \textgreater{} 50\%
+and poverty (below 200 FPL) \textgreater{}= 30\% OR Poverty (below 200
+FPL) \textgreater{}= 30\% and Single-parent family \textgreater{}= 30\%
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{data}\OperatorTok{$}\NormalTok{DI_Blk_Lat_POV30_OR_POV30_SPF30[}\KeywordTok{which}\NormalTok{((}
+\NormalTok{  data}\OperatorTok{$}\NormalTok{Flag_HighDI_Blk_Lat }\OperatorTok{==}\StringTok{ }\DecValTok{0} \OperatorTok{&}
+\StringTok{  }\NormalTok{data}\OperatorTok{$}\NormalTok{POVR200_GT_}\DecValTok{30} \OperatorTok{==}\StringTok{ }\DecValTok{0}
+\NormalTok{  ) }\OperatorTok{|}
+\StringTok{  }\NormalTok{(}
+\NormalTok{  data}\OperatorTok{$}\NormalTok{POVR200_GT_}\DecValTok{30} \OperatorTok{==}\StringTok{ }\DecValTok{0} \OperatorTok{&}
+\StringTok{  }\NormalTok{data}\OperatorTok{$}\NormalTok{pct_singleparent_hh_}\FloatTok{2017.}\NormalTok{y }\OperatorTok{<}\StringTok{ }\FloatTok{0.3}
+\NormalTok{  )}
+\NormalTok{  )] <-}\StringTok{ }\DecValTok{0}
+
+\NormalTok{data}\OperatorTok{$}\NormalTok{DI_Blk_Lat_POV30_OR_POV30_SPF30[}\KeywordTok{which}\NormalTok{((}
+\NormalTok{  data}\OperatorTok{$}\NormalTok{Flag_HighDI_Blk_Lat }\OperatorTok{==}\StringTok{ }\OperatorTok{-}\DecValTok{1} \OperatorTok{&}
+\StringTok{  }\NormalTok{data}\OperatorTok{$}\NormalTok{POVR200_GT_}\DecValTok{30} \OperatorTok{==}\StringTok{ }\OperatorTok{-}\DecValTok{1}
+\NormalTok{  ) }\OperatorTok{|}
+\StringTok{  }\NormalTok{(}
+\NormalTok{  data}\OperatorTok{$}\NormalTok{POVR200_GT_}\DecValTok{30} \OperatorTok{==}\StringTok{ }\OperatorTok{-}\DecValTok{1} \OperatorTok{&}
+\StringTok{  }\NormalTok{data}\OperatorTok{$}\NormalTok{pct_singleparent_hh_}\FloatTok{2017.}\NormalTok{y }\OperatorTok{>=}\StringTok{ }\FloatTok{0.3}
+\NormalTok{  )}
+\NormalTok{  )] <-}\StringTok{ }\OperatorTok{-}\DecValTok{1}
+
+\NormalTok{data}\OperatorTok{$}\NormalTok{DI_Blk_Lat_POV30_OR_POV30_SPF30 <-}
+\StringTok{  }\KeywordTok{ifelse}\NormalTok{(}
+  \KeywordTok{is.na}\NormalTok{(data}\OperatorTok{$}\NormalTok{DI_Blk_Lat_POV30_OR_POV30_SPF30),}
+  \DecValTok{0}\NormalTok{,}
+\NormalTok{  data}\OperatorTok{$}\NormalTok{DI_Blk_Lat_POV30_OR_POV30_SPF30}
+\NormalTok{  ) }\CommentTok{#fixed NAs}
+
+\KeywordTok{sum}\NormalTok{(data}\OperatorTok{$}\NormalTok{DI_Blk_Lat_POV30_OR_POV30_SPF30) }\CommentTok{#320 records}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] -320
+\end{verbatim}
+
+\section{Check filters}\label{check-filters}
+
+\section{Filter Function}\label{filter-function}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{#library(dplyr)}
+\NormalTok{categorize <-}
+\StringTok{  }\NormalTok{data }\OperatorTok{%>%}\StringTok{ }\NormalTok{dplyr}\OperatorTok{::}\KeywordTok{select}\NormalTok{(}
+  \StringTok{"fips"}\NormalTok{,}
+  \StringTok{"index"}\NormalTok{,}
+  \StringTok{"DI_Blk_Lat_POV30"}\NormalTok{,}
+  \StringTok{"SPF30_P30"}\NormalTok{,}
+  \StringTok{"DI_Blk_Lat_POV30_OR_POV30_SPF30"}
+\NormalTok{  ) }\OperatorTok{%>%}\StringTok{ }\KeywordTok{filter}\NormalTok{(DI_Blk_Lat_POV30_OR_POV30_SPF30 }\OperatorTok{==}\StringTok{ }\OperatorTok{-}\DecValTok{1}\NormalTok{) }\OperatorTok{%>%}\StringTok{     }
+\StringTok{  }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{category =}
+  \StringTok{"Lowest Opportunity"}\NormalTok{) }\CommentTok{#returns 320}
+
+\NormalTok{remaining <-}
+\StringTok{  }\NormalTok{data }\OperatorTok{%>%}\StringTok{ }\NormalTok{dplyr}\OperatorTok{::}\KeywordTok{select}\NormalTok{(}
+  \StringTok{"fips"}\NormalTok{,}
+  \StringTok{"index"}\NormalTok{,}
+  \StringTok{"DI_Blk_Lat_POV30"}\NormalTok{,}
+  \StringTok{"SPF30_P30"}\NormalTok{,}
+  \StringTok{"DI_Blk_Lat_POV30_OR_POV30_SPF30"}
+\NormalTok{  ) }\OperatorTok{%>%}\StringTok{ }\KeywordTok{filter}\NormalTok{(}
+\NormalTok{  DI_Blk_Lat_POV30_OR_POV30_SPF30 }\OperatorTok{==}\StringTok{ }\DecValTok{0} \OperatorTok{&}
+\StringTok{  }\NormalTok{(}
+\NormalTok{  fips }\OperatorTok{!=}\StringTok{ "06081984300"} \OperatorTok{&}\StringTok{ }\NormalTok{fips }\OperatorTok{!=}\StringTok{ "06095253000"} \OperatorTok{&}
+\StringTok{  }\NormalTok{fips }\OperatorTok{!=}\StringTok{ "06095980000"}
+\NormalTok{  )}
+\NormalTok{  )}
+
+\NormalTok{remaining}\OperatorTok{$}\NormalTok{DI_Blk_Lat_POV30 <-}\StringTok{ }\DecValTok{0}
+
+\NormalTok{nan_records <-}
+\StringTok{  }\NormalTok{data }\OperatorTok{%>%}\StringTok{ }\NormalTok{dplyr}\OperatorTok{::}\KeywordTok{select}\NormalTok{(}
+  \StringTok{"fips"}\NormalTok{,}
+  \StringTok{"index"}\NormalTok{,}
+  \StringTok{"DI_Blk_Lat_POV30"}\NormalTok{,}
+  \StringTok{"SPF30_P30"}\NormalTok{,}
+  \StringTok{"DI_Blk_Lat_POV30_OR_POV30_SPF30"}
+\NormalTok{  ) }\OperatorTok{%>%}\StringTok{ }\KeywordTok{filter}\NormalTok{(fips }\OperatorTok{==}\StringTok{ "06081984300"} \OperatorTok{|}
+\StringTok{  }\NormalTok{fips }\OperatorTok{==}\StringTok{ "06095253000"} \OperatorTok{|}
+\StringTok{  }\NormalTok{fips }\OperatorTok{==}\StringTok{ "06095980000"}\NormalTok{)}
+
+\NormalTok{nan_records}\OperatorTok{$}\NormalTok{category_}\DecValTok{2}\NormalTok{ <-}\StringTok{ }\OtherTok{NA}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{D. Categorization with
+Filters}\label{d.-categorization-with-filters}
+
+\subsection{E. Categorization without
+Filters}\label{e.-categorization-without-filters}
+
+\subsubsection{1. Graphs or Charts}\label{graphs-or-charts}
+
+Plotting index by opportunity categories but not sure why ggplot is not
+available
+
+\subsection{F. Missing Values}\label{f.-missing-values}
+
+These are records with NAs or missing values\\
+1. fips 06081984300 has NaN in pct\_pov\_below\_200 and
+pct\_singleparent\_hh\\
+2. fips 06081984300 (Mod) changed to NAs\\
+3. fips 06095253000 has NaN in pct\_pov\_below\_200 and
+pct\_singleparent\_hh\\
+4. fips 06095253000 (Highest) changed to NAs\\
+5. fips 06095980000 has NaN in pct\_pov\_below\_200 and
+pct\_singleparent\_hh\\
+6. fips 06095980000 (High) changed to NAs
+
+\subparagraph{The records below have poverty rate percentages, which is
+why they're not changed to NAs to prevent them from not being counted
+even if they do not have pct\_single-parent\_ household\_hh. These
+records were categorized based on its index
+values.}\label{the-records-below-have-poverty-rate-percentages-which-is-why-theyre-not-changed-to-nas-to-prevent-them-from-not-being-counted-even-if-they-do-not-have-pct_single-parent_-household_hh.-these-records-were-categorized-based-on-its-index-values.}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{6}
+\tightlist
+\item
+  fips 06001981900 has NA in pct\_singleparent\_hh\\
+\item
+  fips 06001981900 (High),\\
+\item
+  fips 06013351101 has NA in pct\_singleparent\_hh\\
+\item
+  fips 06013351101 (Mod),\\
+\item
+  fips 06013351102 has NA in pct\_singleparent\_hh\\
+\item
+  fips 06013351102 (Mod),\\
+\item
+  fips 06013351103 has NA in pct\_singleparent\_hh\\
+\item
+  fips 06013351103 (High),\\
+\item
+  fips 06075980300 has NA in pct\_singleparent\_hh\\
+\item
+  fips 06075980300 (High)
+\end{enumerate}
+
+\subsection{Output: Index with Filters}\label{output-index-with-filters}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{table}\NormalTok{(data}\OperatorTok{$}\NormalTok{category_wo_filters, data}\OperatorTok{$}\NormalTok{category)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## < table of extent 0 x 0 >
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{merging <-}\StringTok{ }\KeywordTok{full_join}\NormalTok{(nan_records, remaining)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Joining, by = c("fips", "index", "DI_Blk_Lat_POV30", "SPF30_P30", "DI_Blk_Lat_POV30_OR_POV30_SPF30")
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{#categories <- full_join(remaining, categorize)}
+\CommentTok{#na_records <- index %>% select("fips", "SPF_GT_30" , "pct_singleparent_hh_2017.y") %>% filter(is.na(index$pct_singleparent_hh_2017.y)) #8 NAs}
+\CommentTok{#index_w_filters <- full_join(remaining, categorize)}
+\CommentTok{#write.csv(index_w_filters, "index_w_filters.csv")}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{G. Overlays}\label{g.-overlays}
+
+\paragraph{Racial and Ethnic Composition
+Overlay}\label{racial-and-ethnic-composition-overlay}
+
+Data Source: ACS Census data 2010-2014\\
+Description: To analyze the distribution of racial and ethnic
+composition. I joined the shapefile using the `GEOID' field to match it
+with the GEOID in the opportunity categories shapefile
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{race_list <-}\StringTok{ }\KeywordTok{c}\NormalTok{(}\StringTok{"fips"}\NormalTok{, }\StringTok{"CountyID.x.x"}\NormalTok{, }\StringTok{"TOTPOP.x.x"}\NormalTok{, }\StringTok{"total_pop"}\NormalTok{,}\StringTok{"index"}\NormalTok{,}\StringTok{"total_pop"}\NormalTok{,}\StringTok{"white"}\NormalTok{,}\StringTok{"black"}\NormalTok{, }\StringTok{"asian"}\NormalTok{, }\StringTok{"hispanic"}\NormalTok{, }\StringTok{"other"}\NormalTok{, }\StringTok{"county_name"}\NormalTok{,}\StringTok{"cbsa"}\NormalTok{,}\StringTok{"divergence_thresh"}\NormalTok{, }\StringTok{"DI_Blk_Lat_POV30_OR_POV30_SPF30"}\NormalTok{)}
+
+\CommentTok{#filter_race <- function(data, r_list)\{}
+\CommentTok{#  daf <- data %>% select(r_list)}
+\CommentTok{#  assign(daf, envir=.GlobalEnv)}
+\CommentTok{#\}}
+\CommentTok{#source(here(filter_race.R))}
+\CommentTok{#filter_race(data=index_filters, r_list=race_list)}
+\end{Highlighting}
+\end{Shaded}
+
+\paragraph{Median Household Income}\label{median-household-income}
+
+Data Source: American Community Survey (5-year-estimates)\\
+Table: B19013\_001 -- MEDIAN HOUSEHOLD INCOME IN THE PAST 12 MONTHS (IN
+2017 INFLATION-ADJUSTED DOLLARS)
+
+\paragraph{Payday Lending Overlay}\label{payday-lending-overlay}
+
+Data Source: ESRI Business Analyst\\
+Spreadsheet: OV\_YEAR\_Payday\\
+Description: 2017 Measure -- Spatially join the payday lending in the
+bay area shape file to the 2014 census tract shape file with the
+opportunity categories to obtain the number of businesses per census
+tract. Then use the count of number of businesses per tract divided by
+the total count number of payday lending and credit businesses in the
+Bay Area to obtain the percentage.\\
+2018 Measure -- Identify whether the column salevolume in the dataset
+has the volume of payday loan sales. Aggregate those sales and
+distribute them to tracts to identify the amount of sales in each
+neighborhood OR (if it's possible to) identity where the highest
+percentage of interests (200-400\%) that these payday loans are located
+and how many of them are in each census tracts.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{#load(file="BA_payday_2018.RData")}
+\CommentTok{#proj4string(BA_payday_2018)}
+\end{Highlighting}
+\end{Shaded}
+
+\paragraph{Subsidized Housing Overlay}\label{subsidized-housing-overlay}
+
+Data Source: HUD subsidized housing projects\\
+Spreadsheet: OV\_Year\_SubHous\\
+Description:
+
+• Data should be gathered through HUD instead of TCAC. Use the file
+obtained from HUD to create a point shapefile based on the lat and long
+for each (which is in the table).\\
+• This table has all subsidized housing projects in California; Use
+geoprocessing to clip the subsidized housing shapefile to Bay Area\\
+• Analysis of Projects and Units should be included in the map based on
+subsidized units available and the number of subsidized programs in the
+region.
+
+\paragraph{Low population density
+Overlay}\label{low-population-density-overlay}
+
+Data Source: Census Data\\
+Spreadsheet: OV\_Year\_LowDen\\
+Description: To analyze the density of the census tract and identify
+areas that are considered low density with 40 or more acres per person\\
+• Calculate the ``area'' of each tract in acres. Then I divided that by
+the number of people, and the results are in POP\_DEN field. All tracts
+which had a value of 40 or above were highlighted on the map with a
+specific symbology\\
+Example:\\
+Step 1: Create a new field, ``Acres\_per'' person for each tract
+\textgreater{} Calculate Geometry \textgreater{} selecting Area
+\textgreater{} Coordinate System: Use Coordinate System of the data
+frame: PCS: NAD 1983 StatePlane California III FIPS 0403 \textgreater{}
+Units: Acres {[}US{]} (ac) \textgreater{} OK\\
+Step 2: Then, create a new field titled, ``POP\_DEN'' in which the value
+would be ``Acres\_per'' person for each tract divided by the number of
+people in the tract \textgreater{} select the tracts that have the value
+of 40 or above
+
+
+\end{document}

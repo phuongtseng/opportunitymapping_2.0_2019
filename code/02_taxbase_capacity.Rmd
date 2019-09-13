@@ -1,0 +1,209 @@
+---
+title: "taxbase_capacity"
+author: "Phuong Tseng"
+date: "5/22/2018"
+output:
+  html_document:
+      toc: yes
+      toc_float: yes
+  pdf_document: default
+---
+
+## Information about the Script:
+
+> Do file created by Heather Bromfield in Stata, Finalized on March 9, 2018 Opportunity Mapping Project 2.0, Haas Institute for a Fair and Inclusive Society. 
+> It was revised & updated by Phuong Tseng in May 2018 in R with notes labeled as #@
+> This do file contains procedures and explanations for cleaning and calculating the tax base/ capacity indicator.
+---
+
+## 1R. Set-up the libraries and directory in R
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(eval = FALSE, include = FALSE, warning=FALSE, message = FALSE)
+x <- c("dplyr", "data.table", "readr", "readxl", "stringr", "RCurl")
+lapply(x, require, character.only=TRUE)
+```
+
+###### Now we're finally ready to join each of the jurisdictions to their names. For cities, we could just do this manually (since the 7-9th characters of the IDs are listed alphabetically within the county that they belong to), but since this will be cumbersome if we start scaling this project up outside of Alameda County, so we'll use the "Governments Integrated Directory" (GID) that also comes in the data download from the Census Bureau website in order to match the 14-digit IDs with the names of each jurisdiction. In a separate do-file I've quickly cleaned  the GID file so that only the observations from Alameda County are included. The next procedure involves merging the revenue data with the names of jurisdictions.*/
+
+```{r echo=TRUE}
+## Four-step process for cleaning the Governments Integrated Directory file to obtain the jurisdiction names
+## infix str state 1-2 str jrsd_type 3 str cnty 4-6 str etc 7-14 str jrdsct_name 15-78 str county 79-113 str unknown 114-134 
+GID_2012 <- read_csv("~ptseng/Downloads/2012_Individual_Unit_File_Revised/Fin_GID_2012.txt", col_names = FALSE)
+GID_2012$state <- substring(GID_2012$X1, 1,2)
+GID_2012$jrsd_type <- substring(GID_2012$X1, 3,3)
+GID_2012$cnty <- substring(GID_2012$X1, 4,6)
+GID_2012$etc <- substring(GID_2012$X1, 7,14)
+GID_2012$jrdsct_name <- substring(GID_2012$X1, 15,78)
+GID_2012$county <- substring(GID_2012$X1, 79,113)
+GID_2012$unknown <- substring(GID_2012$X1, 114,134)
+#@ There are 90,315 records
+```
+
+## Filter the data
+```{r, include=FALSE}
+#@ This is to filter Governments Integrated Directory file to get the bay area records
+GID_2012_df <-dplyr::filter(GID_2012, state =="05", cnty=="001" | cnty=="007"| cnty=="021"| cnty=="028"| cnty=="038"| cnty=="041"| cnty=="043"| cnty=="048"| cnty=="049") %>% mutate(ID=paste0(state,jrsd_type,etc))
+
+
+## In order to make sure that we'll be able to join this data to the crosswalk data, there are a couple of changes that need to be made: (1) removing all jurisdiction types that are not cities; (2) creating a new variable for the field containing the city names that matches the crosswalk's variable name; and (3) dropping the variable "county", which also exists in the crosswalk data but is of a different data type.
+drop <- c("X1", "county")
+GID_2012_df2 = GID_2012_df[,!(names(GID_2012_df) %in% drop)]
+GID_2012_df2[-c("X1","county"),]
+GID_2012_df2 <- GID_2012_df2[!grepl("AUTH", GID_2012_df2$jrdsct_name),]
+GID_2012_df2 <- GID_2012_df2[!grepl("AGENCY", GID_2012_df2$jrdsct_name),]
+#GID_2012_df2 <- GID_2012_df2[!grepl("DIST", GID_2012_df2$jrdsct_name),] #@ Do not run this with schoolcrosswalk
+#@ This resulted in 182 entries out of 4,485 records in the state 
+#@ And 571 left (by keeping DIST) for merge with schools
+
+View(GID_2012_df2)
+```
+
+```{r echo=TRUE}
+#@ the Fin_GID_2012_df2 is the same as Heather's 2012_Clean_GID.dta, so since the data is already in R, I don't have to read the data in. The Fin_GID_2012_df2 has all records, not just Alameda
+GID_2012_df2$ID2 <- substring(GID_2012_df2$ID, 0,9)
+GID_2012_df2 <- GID_2012_df2[,-c(7),drop=F]
+View(GID_2012_df2)
+#@ This has 159 places with "sch"; 571 records
+
+#@ Do this for the municipal revenue
+X2012_municp4_BayArea <- merge(X2012_municp4, GID_2012_df2, by.x="ID", by.y="ID2")
+
+#@ Do this for the school-district revenue
+X2012_school4_BayArea <- merge(X2012_school4, GID_2012_df2, by.x="ID", by.y="ID2")
+#@This returns 178 IDs matched out of 1,072 records
+```
+
+## Clean and rename the abbreviated labels in the school-district crosswalk
+```{r, include=FALSE}
+#@Try to change the abbreviated labels to the longname since school names are inconsistent in the finance data
+#@gsubfn("X2012_school4_BayArea", list("ELEM"="ELEMENTARY", "UNIF"="UNIFIED", "SCH"="SCHOOL", "DIST"="DISTRICT"), c("x","y","z"))
+X2012_school4_BayArea$name <- X2012_school4_BayArea$jrdsct_name
+X2012_school4_BayArea$name = gsub(' SCH\\w* ', ' SCHOOL ', X2012_school4_BayArea$name)
+X2012_school4_BayArea$name = gsub(' EL\\w* ', ' ELEMENTARY ', X2012_school4_BayArea$name)
+X2012_school4_BayArea$name = gsub(' UNI\\w* ', ' UNIFIED ', X2012_school4_BayArea$name)
+X2012_school4_BayArea$name = gsub(' DIST\\w* ', ' DISTRICT ', X2012_school4_BayArea$name)
+X2012_school4_BayArea$name = gsub(' JT\\w* ', ' JOINT ', X2012_school4_BayArea$name)
+
+block_school_unified <- read.csv("block_school_unified.csv") #@ I named this as block_school3.csv
+```
+## Now, we need to merge it with the crosswalks 
+```{r, include=FALSE}
+#@ block_city for block to municipality, block_school for block to school-district
+library (RCurl)
+download <- getURL("http://mcdc.missouri.edu/tmpscratch/20JUN1910122.geocorr14/geocorr14.csv")
+download <- read.csv(text = download, header=TRUE) #@ It has 403,399 block records
+block_city <- download[-c(1),,drop=F] #@ remove the 2nd row with the names
+
+download2 <- getURL("http://mcdc.missouri.edu/tmpscratch/28JUN1455756.geocorr14/geocorr14.csv")
+download2 <- read.csv(text=download2, header=TRUE)
+#@ write.csv(block_school, "block_school.csv") 
+#@ 710,146 records
+
+#@ Do some cleaning of the crosswalks
+block_city2$pop10 <- as.numeric(as.integer(block_city2$pop10))
+block_city2$placename <- as.character(block_city2$placenm14)
+block_city2$placename <- substring(block_city2$placename, 1, nchar(block_city2$placename)-4) #@has to remove the last 4 ", CA"
+block_city2$jrdsct_name <- str_to_upper(block_city2$placename)
+
+block_school$pop10 <- as.numeric(as.integer(block_school$pop10))
+block_school$elemname <- as.character(block_school$uschlnm10)
+block_school$unifiedname <- as.character(block_school$uschlnm10)
+block_school$elemname <- str_to_upper(block_school$eschlnm10)
+block_school$unifiedname <- str_to_upper(block_school$uschlnm10)
+glimpse(block_school$unifiedname)
+```
+```{r , include=FALSE}
+#@ Taking a slightly different approach than the original version by using census blocks instead of tracts, but the final geographic outputs will be tract. To determine what the total population is of each jurisdiction, the missouri crosswalk file shows that the allocation factor of census blocks to city's ratio is 1:1. To calculate the tax revenues per capita then allocate the revenue per capita value to census tracts Or generate it using tapply but it doesn't work as well as dplyr
+#@ placecrosswalk3$Y <- tapply(placecrosswalk3$pop10_0, placecrosswalk3$jrdsct_name, FUN=sum, default=NA, simplify=FALSE)
+
+#@ assign the variable block_city3 the sum of population of blocks value by jurisdictions
+block_city3 <- block_city2 %>% group_by(jrdsct_name) %>% summarise_at(vars(pop10), sum) %>% ungroup()
+
+#@ do the same thing to elementary schools 
+block_school_elementary2 <- block_school_elementary %>% group_by(eschlnm10) %>% summarise_at(vars(pop10), sum) %>% ungroup()
+
+#@ We want to merge it back to each block so that when we take the city revenue and divide it by the sum of pop in a jurisdiction, we will get the block revenue per person value
+block_city4 <- left_join(block_city2, block_city3, by="jrdsct_name") #@ resulted in 9,564 tracts, 403,398 blocks
+block_school3 <- left_join(block_school_elementary, block_school_elementary2, by="eschlnm10")
+
+block_school_walk <- merge(block_school3, schooldistrict, by.y="District.Name3", by.x="eschlnm10")
+
+#@ This returns 65,269,626 entries
+View(block_school3)
+
+write.csv(block_school_walk, "block_school_walk.csv")
+block_school2v <- fread("block_school2.csv")
+
+block_city_walk <- left_join(X2012_municp4_BayArea, block_city3, by="jrdsct_name") #@ Finally merged the municipalities revenue with population crosswalk to obtain 1,430 tracts, but with blocks there are 51,410 blocks
+
+#@ Not sure if this is needed
+#@unified$name <- unified$new_name
+#@block_school_walk <- merge(unified2, schooldistrict, by.x="new_name2", by.y="District.Name4")
+#@write_csv(block_school_walk, "block_unified.csv")
+
+all_schooldistricts <- merge(block_school_walk)
+
+rm(unified2)
+unified2 <- read.csv("unified2.csv")
+```
+## Calculate municipal revenue per capita and distribute it to census tracts
+```{r, include=FALSE}
+#To calculate the revenue per capita takes the city revenue which is the X2012_municp4_BayArea variable to divide it by the sum of blocks population per city
+block_city4$Rev_p_capita <- X2012_municp4_BayArea$revenueitems_final/block_city4$pop10.y
+
+#Get block revenue by multiplying rev per capita with tract population
+block_city4$block_rev <- block_city4$Rev_p_capita * block_city4$pop10.x
+
+#@FINAL STEP: Aggregation of block_rev by grouping tracts then divide it by tract population
+block_city5$tract_rev_p_capita <- block_city5$block_rev/block_city5$pop10.x
+#@ Each tract has a municipal revenue per capita value
+
+#@$$ aggtctrev <- sum of city_rev/California pop
+
+#@municp4_walk_rev <- ddply(municp4_walk,.(ID, year, revenueitems, revenueitems_final, jrdsct_name, jrsd_type, cnty, tract, cntyname, placenm, placename, pop10.x, afact, AFACT2, pop10.y, tract_revenue),summarize,aggtrev=sum(tract_revenue),number=length(ID))
+unique(municp4_walk_rev, incomparables = FALSE)
+```
+## Export the files
+```{r, include=FALSE}
+#@write_csv(municp4_walk_rev, "municp4_walk_rev.csv", na ="NA")
+#@write_csv(school4_walk_rev, "school4_walk_rev.csv", na ="NA")
+#@save(list=c("municp", "tract", "cityrev", "finalrev"), file="../Users/ptseng/Documents/Outputs/taxbase/municp4_walk_rev.csv")
+```
+## We're now ready to map the data.
+```{r , include=FALSE}
+#@ Note: There are several census tracts that have no jurisdiction name listed. This seems to be because these tracts partially cover an incorporated Alameda County jurisdiction, and also partially cover an unincorporated area.
+#@ Make it spatial but the data above does not have longitude and lattitude
+#@sp::coordinates(CA_place_2015) <- c('lon','lat')
+
+#Converting dataframe to spatialpointsdataframe using this package and function
+#sp::coordinates(CA_place_2015)
+
+## Read in a Shapefile with the boundary of San Francisco
+#Take a look at the file(s)
+dir("data", pattern="CA_place_2015")
+
+#dsn means data source name and layer is the file name minus the extension of shapefile
+ca_place_2015 <- readOGR(dsn="data",layer="CA_place_2015")
+
+plot(ca_place_2015)
+
+# Define the CRS for ca_place_2015_sp as WGS84 BUT might need to change to NAD83
+proj4string(ca_place_2015_sp) <- CRS("+proj=longlat 
+                                 +ellps=WGS84 +datum=WGS84 +no_defs")
+# use an EPSG code for WGS84
+proj4string(ca_place_2015_sp) <- CRS("+init=epsg:4326") 
+
+## Overlay the data in space
+plot(ca_place_2015_sp)
+
+# write transformed data to a new shapefile 
+writeOGR(ca_place_2015_sp, 
+         dsn = "data", 
+         layer = "ca_place_2015_sp", 
+         driver="ESRI Shapefile")
+
+## Output code to script
+library(knitr)
+purl("taxcapacity.Rmd",
+     output = "Documents/Outputs/taxbase/taxbase_capacity.R", documentation = 1)
+```

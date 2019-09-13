@@ -1,0 +1,294 @@
+---
+title: "School District Revenue Per Capita"
+author: Author Phuong Tseng
+date: "May 2019"
+output:
+  html_document:
+    toc: yes
+    toc_float: no
+  pdf_document:
+    toc: yes
+---
+# R Procedures:
+> This script contains procedures and explanations for cleaning and calculating the school district revenue per capita indicator. There are 3 different datasets in this analysis:
+
+>1) [2016 Census of Governments Survey of Local Government Finances Individual Unit Data File](https://www.census.gov/govs/www/stateloctechdoc.html). This data file, **2016FinEstDAT_12042018modp_pu.txt**, has IDs, tax codes, revenue amount, year of dataset, population file, and other identifiers. Here is the [Government Finances Methodology](https://www2.census.gov/programs-surveys/gov-finances/technical-documentation/methodology/2016/2016%20Methodology%20Document%20Final.pdf.).
+>2) [GID Directory Information File](http://dlab.berkeley.edu/calendar-node-field-date). This GIS file, **Fin_GID_2016.txt**, contains basic identifier information for corresponding finance survey. For technical documentation of the first files, refer to [census of government](https://www.census.gov/govs/www/stateloctechdoc.html).
+>3) [SAIPE School District Estimates for 2017](https://www.census.gov/data/datasets/2017/demo/saipe/2017-school-districts.html). This SAIPE file, **ussd17.xls**, consists of school district population estimates that we need for  calculating the school district revenue per capita.
+
+> In order to calculate the school district revenue per capita, there are 4 major steps:
+
+>1) Clean and filter the finance data to get bay area's school district revenue.
+>2) Clean the Government Integrated Directory (GID) dataset, which has an ID used to merge with the finance data to acquire the school district names that match with each finance ID. 
+>3) Merge both finance and GID files with the geographic relationship file (GRF) and export an output file titled, **districtrevenue_amount_2016.csv**.
+>4) Merge the output file with the SAIPE School District Estimates for 2017 file, **ussd17.xls**, then export the file as **districtrevenue_amount_2016_population.csv**.
+
+## Setup the packages and libraries
+To work with this Rmarkdown file, there are a few packages such as **dplyr, data.table, readr, readxl, and stringr** that you need to run.
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      message = FALSE,
+                      warning = FALSE)
+                      knitr::opts_knit$set(
+                      root.dir = normalizePath(
+                      "/Users/ptseng/Documents/Research/tax capacity/2016_Individual_Unit_file/"
+                      )
+                      )
+                      x <- c("dplyr", "data.table", "readr", "readxl", "stringr", "RCurl")
+                      lapply(x, require, character.only = TRUE)
+                      
+                      #library(sp, dplyr, tidyr, rgdal, leaflet, ggplot2, data.table, readr, readxl, bit, bit64, data.table, stringr, tigris, acs, stringr, tmap, tidycensus, rio, feather, WDI)
+#devtools::create("opportunitymapping2019")
+#devtools::use_package()
+```
+
+### 1. Read in the Government Finances Data 
+Next, read in the finance survey dataset, **2016FinEstDAT_12042018modp_pu.txt**, from the Census of Governments. The dataset does not have a header but it has two columns titled, "X1" and "X2" where the values are separated by spaces. 
+```{r read the data, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+X2016_FinEst <-
+  read_table("2016FinEstDAT_12042018modp_pu.txt",
+             col_names = FALSE)
+colnames(X2016_FinEst)
+```
+
+#### A. Extract and rename the column names
+To work with this dataset, use **stringr::substr** to extract the position and length of each vector. The column names will be displayed below.
+```{r rename columns, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+X2016_FinEst$state <- substr(X2016_FinEst$X1, 1, 2)
+X2016_FinEst$gov_type <- substr(X2016_FinEst$X1, 3, 3)
+X2016_FinEst$cnty <- substr(X2016_FinEst$X1, 4, 6)
+X2016_FinEst$flag <- str_sub(X2016_FinEst$X2, start=-1)
+X2016_FinEst$unit <- substr(X2016_FinEst$X1, 7, 9)
+X2016_FinEst$own_unit <- substr(X2016_FinEst$X1, 10, 14)
+X2016_FinEst$taxcode <- substr(X2016_FinEst$X1, 15, 17)
+colnames(X2016_FinEst)
+```
+
+#### B. Filter the dataset
+After you extracted and renamed the columns, you now have to filter the dataset by tax codes and government type within California. 
+```{r filter_codes, echo=TRUE, message=FALSE, warning=FALSE, paged.print=FALSE}
+schooldistrict <-
+  dplyr::filter(X2016_FinEst,
+         grepl('^[AD-DT-U]', taxcode),
+         state == "05",
+         gov_type == "5") %>% select(X1, X2, state, cnty, gov_type, flag, unit, 
+                                     own_unit, taxcode, flag)
+  #Return tax codes with A, D, T, and U.
+  unique(schooldistrict$taxcode) 
+  
+  #This should return 6,608 school district records
+  dim(schooldistrict) 
+```
+
+#### C. Calculate the school district revenue amount 
+There are about 31,506 records within CA but there are no record of townships. There are 4,110 special districts and 18,225 school districts in the US. Once the revenue is extracted from the **"X2" and "test_amount"** columns, multiply the revenue amount by 1000 because these numbers are in thousands. The output will show a few revenue records in thousands or more.
+```{r revenue amount, echo=TRUE}
+schooldistrict$test_amount <-
+  str_trim(schooldistrict$X2, side = "both")
+  schooldistrict$amount <-
+  str_sub(schooldistrict$test_amount, end = -6)
+  schooldistrict <-
+  schooldistrict %>% mutate(amount = as.numeric(amount), amount_2016 = amount*1000)
+  head(schooldistrict$amount_2016)
+```
+
+#### D. Generate a new ID for merge
+Use columns **state, gov_type, cnty, unit, and own_unit** to generate a 14-digits ID to be used in part 2 of the analysis.
+```{r generate an ID, message=FALSE, warning=FALSE, include=FALSE, paged.print=FALSE}
+schooldistrict$ID <-
+  paste0(
+  schooldistrict$state,
+  schooldistrict$gov_type,
+  schooldistrict$cnty,
+  schooldistrict$unit,
+  schooldistrict$own_unit
+  )
+```
+
+### 2. Read and Clean the Government Integrated Directory file
+After reading in the data file, extract the position and length for each column. The column names of the GID file will be displayed below.
+```{r Clean GID, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+# Extract jurisdiction names from the Fin_GID_2016 file
+Fin_GID_2016_copy <-
+  read_excel("Fin_GID_2016 copy.xls",
+             sheet = "Sheet1",
+             col_names = FALSE)
+Fin_GID_2016_copy$state <- substring(Fin_GID_2016_copy$X__1, 1, 2)
+Fin_GID_2016_copy$jrsd_type <-
+  substring(Fin_GID_2016_copy$X__1, 3, 3)
+Fin_GID_2016_copy$cnty <- substring(Fin_GID_2016_copy$X__1, 4, 6)
+Fin_GID_2016_copy$etc <- substring(Fin_GID_2016_copy$X__1, 7, 14)
+Fin_GID_2016_copy$jrdsct_name <-
+  substring(Fin_GID_2016_copy$X__2, 0, 63)
+Fin_GID_2016_copy$statecode <-
+  str_sub(Fin_GID_2016_copy$X__4, 0, 1)
+Fin_GID_2016_copy$countycode <-
+  str_sub(Fin_GID_2016_copy$X__4, 2, 4)
+
+colnames(Fin_GID_2016_copy)
+```
+
+#### A. Extract GID bay area records
+Our analysis is for school districts in the bay area, so we must filter these records that are within the 9 counties (i.e. **Alamed, Contra Costa, Marin, Napa, Santa Clara, San Mateo, San Francisco, Solano, and Sonoma**). This extraction returns 273 records.
+```{r extract bay area counties, echo=TRUE, message=FALSE, warning=FALSE, paged.print=FALSE}
+Fin_GID_2016 <-
+  dplyr::filter(
+  Fin_GID_2016_copy,
+  X__3 == "Alameda" |
+  X__3 == "Contra Costa" |
+  X__3 == "Marin" |
+  X__3 == "Napa" |
+  X__3 == "Santa Clara" |
+  X__3 == "San Mateo" |
+  X__3 == "San Francisco" | X__3 == "Solano" | X__3 == "Sonoma"
+  )
+
+dim(Fin_GID_2016)
+```
+
+#### B. Generate a new ID for merge
+Use columns **state, gov_type, cnty, unit, and own_unit** to generate a 14-digits ID to be used in part 2.
+```{r generate an GID ID, echo=TRUE}
+Fin_GID_2016_copy$ID <-
+  paste0(Fin_GID_2016_copy$state,
+  Fin_GID_2016_copy$jrsd_type,
+  Fin_GID_2016_copy$cnty,
+  Fin_GID_2016_copy$etc) 
+```
+
+### 3. Merge the GID and Finance data with GRF
+```{r Merge Files, echo=TRUE, message=FALSE, warning=FALSE, paged.print=FALSE}
+merge_districts <-
+  merge(Fin_GID_2016, schooldistrict, by = "ID") #1247 school districts with all 9 counties
+  merge_districts_total <-
+  merge_districts %>% group_by(
+  ID,
+  X__1,
+  X__2,
+  X__3,
+  X__4,
+  jrsd_type,
+  cnty.x,
+  jrdsct_name,
+  statecode,
+  countycode,
+  flag,
+  unit,
+  own_unit,
+  amount,
+  amount_2016
+  ) %>% mutate(district_amount_2016 = sum(amount_2016)) #NEED TO CHECK
+  
+  #Merge with Geographic relationship file
+  grf18_lea_tract <-
+  read_excel(
+  "~/Documents/Research/tax capacity/GeographicRelationshipFiles18/grf18_lea_tract.xlsx"
+  )
+  #grf_sd_pop <- merge(sd_pop_2017, grf18_lea_tract, by.x = SD_ID, by.y=LEADID)
+  #str(grf_sd_pop)
+```
+
+# GIS Procedures
+
+>The school district shapefile contains all school districts in the United States, and therefore, school districts that fall outside of the bay area 9 counties boundaries are removed from this analysis. Secondary school districts were eliminated from this analysis due to overlapping boundaries with unified and elementary school district boundaries to avoid overcounting. About 83 data points were labeled as “NULL” or missing data because Census of Government did not have that data point or it was listed as one record with naming convention “joint” or “schools” without records of the other combined schools in the data file.
+
+>These are the inputs files for this analysis:
+
+>1. [SAIPE School District Estimates for 2017](https://www.census.gov/data/datasets/2017/demo/saipe/2017-school-districts.html) 
+Bay Area SAIPE School District Estimates for 2017 [EXCEL: `ussd17.xls SHEET SchoolDistrict_Pop_USSD17`]
+>2. Bay Area school district [SHAPE FILE: `Bayarea_schooldistrict_sy1516_tl17`] 
+>3. Bay Area census tract [SHAPE FILE:`BayAreaTracts_2015_WGS84_AuxSphere`]
+>4. School district revenue (per capita) file [EXCEL:`districtrevenue_amount_2016`]
+
+> There are a few steps:
+
+>1. Read the bay area school district boundary and census tract boundary 
+>2. Read the SAIPE and school district revenue
+>3. Merge the school district estimates to the school district shapefile to acquire the school district revenue using the Geographic Relationship File (GRF) 
+>4. Take the school district revenue and divide it by the population estimates to get the revenue per capita. 
+>5. Apportion the school district revenue per capita to census tracts using the TRACT IDS column in the GRF file.
+>6.Export the file as Bay Area school districts revenue per capita z-scores **Bayarea_schooldistricts_ztaxcap `FIELD` zSDRevPCap**
+
+## Setup the geospatial packages 
+### 1. Read school district and census tract shapefiles
+### 2. Read SAIPE and school district revenue
+```{r Read the school district population file, echo=FALSE}
+sd_pop_2017 <-
+  read_excel("~/Documents/Research/tax capacity/ussd17.xls", sheet = "SchoolDistrict_Pop_USSD17")
+  head(sd_pop_2017)
+```
+
+### 3. Merge the input files with the Geography Relationship File 
+[GRF CSV FILE:`grf18_lea_tract FIELD LEAID`]
+
+1)	Bay Area census tract shape file `AND` Geography Relationship File `BY` Census Tract ID
+2)	School district revenue (per capita) file `AND` Bay Area census tract shape file `BY` GRF school district IDs
+a)  Since the number of tracts that fall in a district range from 1 to 197 tracts, it is more reliable to merge both files BY school district IDs.
+b)  This resulted in 83/1582 or 5.25% missing records.
+3)	Join the EDGE relationship file (grf18_lea_tract) with the TIGER shape file (census tract). The EDGE geography relationship file has both school district IDs and census tract IDs, and thus, allows an easy join of school district revenue per capita to census tract.
+
+### 4. Calculate the school district revenue per capita
+```{r calculate revenue per capita, echo=TRUE}
+#sd_rpc <- (merge_districts_total$amount_2016)/(sd_pop_2017$pop)
+```
+### 5. Apportion the school district revenue per capita to census tracts 
+Distribute revenue per capita to census tracts using the TRACT IDS column in the GRF file. 
+
+### 6. Export the files
+Title it as **districtamount_2016_population.csv**. Bay Area school districts revenue per capita z-scores Bayarea_schooldistricts_ztaxcap `FIELD` zSDRevPCap. 
+```{r export, eval=FALSE, include=FALSE}
+write_csv(merge_districts, "merge_districts.csv", na = "NA")
+
+save(
+list = c("merge_districts", "sd_pop_2017", "merge_districts_total"),
+file = "../Users/ptseng/Documents/Research/tax capacity/2016_Individual_Unit_file/output_files.csv"
+)
+```
+
+# Output code to script
+```{r output code to script, eval=FALSE, include=FALSE}
+library(knitr)
+purl("taxbase_capacity.Rmd",
+output = "Users/ptseng/Documents/Research/tax capacity/2016_Individual_Unit_file/taxbase_capacity.R",
+documentation = 1)
+```
+
+#Missing Data Points
+
+May 31
+The ussd17.xls file has 13223 school districts/records in the United States, but there are only 944 records in California
+
+Alameda 18 
+Contra Costa 18
+Marin 17
+Napa 5
+SF 1
+San Mateo 22
+Santa Clara 30
+Solano 6
+Sonoma has 37 records
+TOTAL 154 records, which matched with districtrevenue_amount_2016_X__3
+
+
+Bayarea_schooldistricts only had 170 records, but Bayarea_schooldistricts_USSD has 151 records, while there are 19 records that are secondary
+districtrevenue_amount_2016_X__3 has 1247 records total that includes secondary, community colleges, transportation JPA, joint, etc
+
+Elementary has 452 records
+Unified 374
+Total 826 school districts in the bay area elementary or unified
+
+
+Bayarea_schooldistricts_USSD joined with USSD17.xls population estimates resulted in 16 records with missing datapoints but 6 records are secondary records, while 10 of those records are unified and elementary:
+
+1.	Larkspur Elementary School 
+2.	Union Joint El
+3.	La Honda-Pescadero Unified
+4.	Arena Union El
+5.	Patterson Joint Unified
+6.	Winters Joint Unified
+7.	River Delta Joint Unified
+8.	Kashia El
+9.	Santa Rosa El
+10.	Davis Joint Unified
+
+320 tracts out of 1582 tracts were missing or secondary schools

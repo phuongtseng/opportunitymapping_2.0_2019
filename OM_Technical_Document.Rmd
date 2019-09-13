@@ -1,0 +1,596 @@
+---
+title: "Phuong's Working Document"
+output:
+  html_document:
+    toc: yes
+    toc_float: yes
+  pdf_document:
+    toc: yes
+  word_document:
+    toc: yes
+---
+# Description of the document
+> This is the Opportunity Mapping 2.0 Technical Document produced by Phuong Tseng. The intention is to capture changes and developments in the 2019 version.
+
+# The Methodology Document and Spreadsheet  
+1. [2019 Opportunity Mapping Indicators and Measures](https://docs.google.com/spreadsheets/d/1zlJliXjgMCKbtgz4-mM4lPTMmCqCjBJITkYPG7aIv0k/edit#gid=0) 
+2. [OM_methodology_v4_Nov30.pdf] was updated in November 30, 2018. 
+3. [2015 - 2019 Opportunity Mapping 2.0 Document](https://docs.google.com/document/d/1SIhjgN-hdHlSZU4PXY5-4HShhwZ3psGpUtZ24uXhv0A/edit)
+4. [2014 - 2016 Meeting Notes](https://docs.google.com/document/d/1WVgrpNjNTJEWu4UFgUTwLjDJfZGqBk7mXhd7-Spy6Xw/edit)
+
+## Set-up
+```{r Setup, echo=FALSE, message=FALSE, warning=FALSE}
+library(devtools)
+install_github("trinker/pacman")
+pacman::p_load(data.table, 
+               dplyr, 
+               readr, 
+               readxl,
+               tidyverse,
+               tidycensus,
+               tidyr,
+               here, 
+               plotly)
+
+all_data <-
+  fread(
+  here(
+  "data",
+  "all_data.csv"
+  )
+  )
+data <- all_data
+  
+  #load("~/index_filters_2019.RData")
+  #load(
+  #here(
+  #"data",
+  #"index_filters_2019.RData"
+  #)
+  #)
+```
+
+## A. The Domains 
+In 2019, there are 5 domains: education, economic & mobility, housing and neighborhood, conduit, and social capital. The social capital domain is a new domain in 2019. 
+
+### 1. Education Opportunity Indicators
+This year, the education domain added a new indicator called Early Childhood Participation Rate or Pre-K. Another indicator, adult with bachelor's degree was moved from the education domain to the economic & mobility domain in 2019.
+```{r Opportunity Indicators}
+common_fields <- c("fips",
+                   "CountyID.x",
+                   "TOTPOP.x", "county_name.x")
+edu_list <-
+  c(
+  "math_prof",
+  "read_prof",
+  "grad_rate",
+  "pct_not_frpm",
+  "z_math_prof",
+  "z_read_prof",
+  "z_grad_rate",
+  "az_pct_not_frpm",
+  "HD01_VD04",
+  "HD01_VD03",
+  "ratio",
+  "ratio2",
+  "z_preK"
+  )
+```
+
+### 2. Economic & Mobility Opportunity Indicators
+There are a few changes to this domain in 2019. The adult with bachelor's degree was added to this domain, median household income, and median household value. Other indicators such as the commuting time and entry-level jobs' measures were changed to TCAC's measures. A new indicator, school district revenue per capita, was added to capture the extent of municipal hoarding. Due to reliability issues of municipal data, school district boundary was used as a proxy instead.
+```{r}
+econ_list <- c(
+  "total_pop_2017",
+  "below_200_pov_2017.x",
+  "moe_below_200_pov_2017.x",
+  "pct_below_pov_2017",
+  "moe_pct_below_pov_2017",
+  "pct_below_200_pov_2017.x",
+  "pct_assist_2017",
+  "med_hhincome_2017" ,
+  "moe_med_hhincome_2017" ,
+  "employed_pop_20to60_2017",
+  "pct_employed_20to60_2017",
+  "home_value_2017" ,
+  "moe_home_value_2017",
+  "pct_bachelors_plus_2017",
+  "above_200_pov_2017",
+  "pct_above_200_pov_2017",
+  "tot_hh_2017",
+  "moe_tot_hh_2017",
+  "moe_pct_long_commute_2017",
+  "moe_assist_2017",
+  "moe_long_commute_pct",
+  "long_commute_pct",
+  "low_wage_med_distance" ,
+  "jobs_lowed" ,
+  "rural_flag",
+  "az_pct_assist_2017" ,
+  "az_pct_employed_20to60_2017",
+  "z_home_value_2017" ,
+  "z_pct_bachelors_plus_2017" ,
+  "az_pct_long_commute_2017",
+  "z_jobs_lowed" ,
+  "Econ_Domain",
+  "z_sdrevpcap",
+  "sdrev",
+  "sdrevpcap",
+  "sd_totpop"
+  )
+```
+
+### 3. Housing & Neighborhood Opportunity Indicators
+The housing and neighborhood opportunity domain has two new environmental indicators pulled from CalEnviroScreen (i.e. pm25, lead).
+```{r}
+housing_list <-
+  c("below_200_pov_2017.y",
+  "moe_below_200_pov_2017.y",
+  "pct_below_200_pov_2017.y",
+  "pm25",
+  "pct_pm25",
+  "toxRelease",
+  "pct_toxRelease",
+  "lead_pctl",
+  "pct_lead_pctl" ,
+  "Grocery",
+  "z_Grocery" ,
+  "az_Grocery",
+  "P_INSURED" ,
+  "az_insurance" ,
+  "H_Crime",
+  "pct_parks",
+  "az_pct_below_200_pov_2017",
+  "az_pct_below_200_pov_20172",
+  "az_pct_pm25",
+  "az_pct_toxRelease",
+  "az_pct_lead_pctl" ,
+  "Housing_Env_Domain",
+  "test_azcrime" ,
+  "azhealthcare" ,
+  "zparks"
+  )
+```
+
+### 4. Conduit
+The Conduit domain has two indicators: median broadband download speed and percentage of single-parent households.
+```{r}
+conduit_list <-
+  c(
+  "pct_singleparent_hh_2017.y",
+  "moe_pct_singleparent_hh_2017.y",
+  "az_pct_singleparent_hh_2017",
+  "TOTPOP.y",
+  "Median_bb",
+  "z_broadband",
+  "z_broadband2",
+  "Conduit"
+  )
+```
+
+### 5. Social Capital
+This is our newest domain, which has the average distance to a religious institution, registered voters voting rate, and average distance to club membership and etc. 
+```{r}
+socap_list <-
+  c(
+  "pct_singleparent_hh_2017.y",
+  "moe_pct_singleparent_hh_2017.y",
+  "az_pct_singleparent_hh_2017",
+  "Clubs",
+  "AVGDIS_REL",
+  "reg_vote",
+  "SOCIAL_CAP",
+  "z_regvoter",
+  "zreligious",
+  "zclubs"
+  )
+```
+
+### 6. Compile All Indicators Function
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+source(here::here("myfunction",'compile_function.R'))
+
+data <- compile_function(
+  data = data,
+  common_fields = common_fields,
+  a_list = edu_list,
+  b_list = econ_list,
+  c_list = housing_list,
+  d_list = conduit_list,
+  e_list = socap_list
+  )
+```
+
+### 7. Calculate Domains
+```{r echo=TRUE}
+data$edu_domain <- rowSums(data[, c("z_preK","z_math_prof","z_read_prof","z_grad_rate","az_pct_not_frpm")], na.rm=TRUE)
+data$edu_domain <- data$edu_domain/5
+
+data$Socap_domain <- rowSums(data[, c("z_regvoter", "zclubs", "zreligious")], na.rm=TRUE)
+data$Socap_domain <- data$Socap_domain/3
+
+data$Conduit_domain <- rowSums(data[,c("az_pct_singleparent_hh_2017", "z_broadband")],na.rm=TRUE)
+data$Conduit_domain <- data$Conduit_domain/2
+
+data$econ_domain <- rowSums(data[,c("z_jobs_lowed", "az_pct_long_commute_2017", "z_sdrevpcap", "z_home_value_2017", "az_pct_assist_2017", "z_pct_bachelors_plus_2017", "az_pct_employed_20to60_2017")],na.rm=TRUE)
+data$econ_domain <- data$econ_domain/7
+
+data$housing_domain <- rowSums(data[,c("test_azcrime", "zparks", "az_Grocery", "az_pct_toxRelease", "az_insurance", "az_pct_lead_pctl", "pct_below_200_pov_2017.x", "az_pct_pm25", "azhealthcare")],na.rm=TRUE)
+data$housing_domain <- data$housing_domain/9
+
+#data$fips <- as.character(data$fips)
+#data$CountyID <- as.character(data$CountyID.x)
+
+#data$fips <- ifelse(length(data$fips!=11), paste0(0, data$fips), data$fips)
+```
+
+## B. Index Calculation
+```{r}
+data$index <- (data$housing_domain + data$edu_domain + data$econ_domain + data$Socap_domain + data$Conduit_domain)/5
+
+summary(data$index)
+#df <- data %>% select(fips,housing_domain,edu_domain,econ_domain,Socap_domain, Conduit_domain, index) %>% filter(is.na(index))
+```
+
+## C. Filters
+### 1. Filtering Single parent families >= 30% 
+returns 471 records with 8 NAs
+```{r}
+#filter_function <- function(data, variable1, variabl2, value, value2){
+#  data$variable1[which(data$variable2)] <- value2
+#  return(data$variable)
+#}
+
+data$SPF_GT_30[which(data$pct_singleparent_hh_2017.y<0.3)] <- 0
+
+data$SPF_GT_30[which(data$pct_singleparent_hh_2017.y>=0.3)] <- -1 #471 records
+
+data$flag_spf <- ifelse(is.na(data$SPF_GT_30), 0, data$SPF_GT_30)
+
+summary(data$flag_spf) #fixed NAs to 0, 471 records
+```
+
+### 2. Filtering Poverty (below 200 FPL) >= 30% 
+returns 418 records with 3 NAs
+```{r}
+data$POVR200_GT_30[which(data$pct_below_200_pov_2017.x<0.3)] <- 0
+
+data$POVR200_GT_30[which(data$pct_below_200_pov_2017.x>=0.3)] <- -1 #418
+
+data$POVR200_GT_30 <- ifelse(is.na(data$POVR200_GT_30), 0, data$POVR200_GT_30)
+
+summary(data$POVR200_GT_30) #418
+```
+
+### 3. Filtering Single parent >= 30% AND Poverty (below 200 FPL) >= 30% 
+```{r}
+data$SPF30_P30[which(data$flag_spf==0 | data$POVR200_GT_30==0)] <- 0
+
+data$SPF30_P30[which(data$flag_spf==-1 & data$POVR200_GT_30==-1)] <- -1
+
+summary(data$SPF30_P30) #fixed NAs to 0
+sum(data$SPF30_P30) #292
+```
+
+### 4. High Divergence and population of Black and Latinx > 50%
+```{r}
+load(here("data", "input_DI.RData"))
+df <- data
+df$fips <- as.character(df$fips)
+df$fips <- paste0(0,df$fips)
+dat <- merge(input_DI,df, by="fips")
+data <- dat
+  
+data$Flag_HighDI_Blk_Lat[which(data$Black_Latinx<=0.5 | data$divergence_thresh<3)] <- 0
+
+data$Flag_HighDI_Blk_Lat[which(data$Black_Latinx>0.5 & data$divergence_thresh==3)] <- -1
+
+sum(data$Flag_HighDI_Blk_Lat) #201 no NAs
+```
+
+### CHECK HERE 5. High Divergence with population of Black and Latinx > 50% and poverty (below 200 FPL) >= 30% 
+```{r}
+#save.image(file="save_test.RData")
+#load(file="save_test.RData")
+
+sum(data$Flag_HighDI_Blk_Lat) #201 no NAs
+sum(data$POVR200_GT_30) #418
+
+#test <- test_function(data = data, variable1 = data$Flag_HighDI_Blk_Lat_POV30,  variable2 = data$Flag_HighDI_Blk_Lat, variable3 = data$POVR200_GT_30,value1=-1,value0=0)
+
+data$Flag_HighDI_Blk_Lat_POV30[which((data$Flag_HighDI_Blk_Lat==0) | (data$POVR200_GT_30 == 0))] <- 0
+
+data$Flag_HighDI_Blk_Lat_POV30[which((data$Flag_HighDI_Blk_Lat==-1) & (data$POVR200_GT_30 == -1))] <- -1
+
+sum(data$Flag_HighDI_Blk_Lat_POV30) #171 records 
+
+
+#data$DI_Blk_Lat_POV30[which((data$Black_Latinx < 0.5 & (data$divergence_thresh < 3)) | (data$POVR200_GT_30 == 0))] <- 0
+
+#data$DI_Blk_Lat_POV30[which((data$Black_Latinx > 0.5 & data$divergence_thresh == 3) | (data$POVR200_GT_30 == -1))] <- -1
+#320
+#sum(data$DI_Blk_Lat_POV30) #WHY this generated 418 NAs
+#returned 448?
+
+#filter_na <- data %>% select(fips, county_name,DI_Blk_Lat_POV30,Black_Latinx,divergence_thresh,POVR200_GT_30) %>%  filter(is.na(data$DI_Blk_Lat_POV30))
+
+summary(data$POVR200_GT_30) #418 no NAs
+```
+
+### 6. Final Filter
+High Divergence with population of Black and Latinx > 50% and poverty (below 200 FPL) >= 30% OR Poverty (below 200 FPL) >= 30% and Single-parent family >= 30%
+```{r}
+data$DI_Blk_Lat_POV30_OR_POV30_SPF30[which((
+  data$Flag_HighDI_Blk_Lat == 0 &
+  data$POVR200_GT_30 == 0
+  ) |
+  (
+  data$POVR200_GT_30 == 0 &
+  data$pct_singleparent_hh_2017.y < 0.3
+  )
+  )] <- 0
+
+data$DI_Blk_Lat_POV30_OR_POV30_SPF30[which((
+  data$Flag_HighDI_Blk_Lat == -1 &
+  data$POVR200_GT_30 == -1
+  ) |
+  (
+  data$POVR200_GT_30 == -1 &
+  data$pct_singleparent_hh_2017.y >= 0.3
+  )
+  )] <- -1
+
+data$DI_Blk_Lat_POV30_OR_POV30_SPF30 <-
+  ifelse(
+  is.na(data$DI_Blk_Lat_POV30_OR_POV30_SPF30),
+  0,
+  data$DI_Blk_Lat_POV30_OR_POV30_SPF30
+  ) #fixed NAs
+
+sum(data$DI_Blk_Lat_POV30_OR_POV30_SPF30) #320 records
+```
+
+# Check filters
+```{r eval=FALSE, include=FALSE}
+na_pov <- data %>% select("fips","pct_below_200_pov_2017.x") %>% filter(is.na(data$pct_below_200_pov_2017.x)) #3 NAs
+
+na_spf <- data %>% select("fips", "SPF_GT_30" , "pct_singleparent_hh_2017.y") %>% filter(is.na(data$pct_singleparent_hh_2017.y)) #8 NAs
+```
+
+# Filter Function
+```{r echo=FALSE}
+relevant_list <- c(
+  "fips",
+  "total_pop",
+  "county_name",
+  "cbsa",
+  "Black_Latinx",
+  "white_Asian",
+  "index",
+  "SPF30_P30",
+  "Flag_HighDI_Blk_Lat_POV30",
+  "DI_Blk_Lat_POV30_OR_POV30_SPF30",
+  "edu_domain",
+  "econ_domain",
+  "Socap_domain",
+  "Conduit_domain",
+  "housing_domain"
+  )
+
+categorize <-
+  data %>% dplyr::select(relevant_list) %>% filter(DI_Blk_Lat_POV30_OR_POV30_SPF30 == -1) %>%
+  mutate(category = "Lowest Opportunity") #returns 320
+
+remaining <-
+  data %>% dplyr::select(relevant_list) %>%
+  filter(
+  DI_Blk_Lat_POV30_OR_POV30_SPF30 == 0 &
+  (
+  fips != "06081984300" & fips != "06095253000" &
+  fips != "06095980000"
+  )
+  )
+
+#remaining$DI_Blk_Lat_POV30 <- 0
+
+nan_records <-
+  data %>% dplyr::select(relevant_list) %>% filter(
+  fips == "06081984300" | fips == "06095253000" |
+  fips == "06095980000"
+  )
+
+nan_records$category <- "NA"
+```
+
+## D. Categorization with Filters
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+#1256 records instead of 1259 records after removing 3 NAs
+#quantile(remaining$index, prob = c(0.25, .5, .75))
+
+remaining$category <- "Opportunity"
+
+#Top 75.01%
+remaining$category[which(remaining$index > quantile(remaining$index, prob = .75))] <- "Highest Opportunity" #314
+
+#Between 50.01% - 75.00%
+remaining$category[which(remaining$index > quantile(remaining$index, prob = .50) & remaining$index <= quantile(remaining$index, prob = .75))] <- "High Opportunity" #314
+
+#Between 25.01% - 50.00%
+remaining$category[which(remaining$index > quantile(remaining$index, prob = .25) & remaining$index <= quantile(remaining$index, prob = .50))] <- "Moderate Opportunity" #314
+
+#Bottom 25%
+remaining$category[which(remaining$index <= quantile(remaining$index, prob = .25))] <- "Low Opportunity" #314
+
+#Join the datasets with filters 
+df <-
+  Reduce(function(x, y, z)
+  full_join(
+  x = x,
+  y = y,
+  z = z
+  ) ,
+  list(remaining, categorize, nan_records))
+```
+
+## E. Categorization without Filters
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+#Top 20% (80-100%)
+#data$index <- ifelse(is.na(data$index), 0, data$index)
+
+#Top 20% (80-100%)
+data$category_wo_filters[which((data$index > quantile(data$index, prob = .80)))] <- "Highest Opportunity"
+
+#Between 60-80%
+data$category_wo_filters[which(data$index >= quantile(data$index, prob = .60) & data$index <= quantile(data$index, prob =.80))] <- "High Opportunity"
+
+#Bottom 20%
+data$category_wo_filters[which(data$index <= quantile(data$index, prob = 0.20))] <- "Lowest Opportunity"
+
+#Between 40-60%
+data$category_wo_filters[which(data$index < quantile(data$index, prob =.60) & data$index > quantile(data$index, prob = .40))] <- "Moderate Opportunity" 
+
+#Between 20-40%
+data$category_wo_filters[which(data$index <= quantile(data$index, prob = .40) & data$index >= quantile(data$index, prob = 0.20))] <- "Low Opportunity"
+
+new_df <- merge(data, df, by = intersect(names(data), names(df)), all.x = TRUE)
+
+#names <- intersect(names(data), names(df))
+#names(new_df) <- sub("^X", "", names(z))
+#make.names(names(z))
+
+#head(new_df)
+#write.csv(data, "data.csv")
+```
+
+### 1. Graphs or Charts
+####Opportunity Index Scores of CBSA
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+categories <- fread(here("output", "categories.csv"))
+
+categoriez <- categories
+
+one <- ggplot2::ggplot(categoriez, aes(x=index.x, y=category, color=category)) + geom_point()
+
+one+facet_grid(.~category)
+#ggsave("index_category", "index_category.png")
+
+
+three <-
+  ggplot(df, aes(x = cbsa, fill = (category))) + geom_bar(position = "dodge")
+ggplotly(three)
+
+#Map It
+#library(leaflet)
+#t <- colorQuantile("YlOrRd", NULL, n = 10)
+#leaflet(categories) %>% 
+#  addTiles() %>%
+#  addCircleMarkers(color = ~t(tann))
+```
+
+
+#### Opportunity Categories by County
+```{r echo=TRUE}
+p <-
+  ggplot(df, aes(x = df$county_name, fill = (category))) + geom_bar(position = "dodge")
+ggplotly(p)
+```
+
+#### Number of Tracts by Opportunity Category and Index Scores
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+d <- df[sample(nrow(df), 1500), ]
+plot_ly(df, x = df$category, y = df$index, 
+        text = paste("Category: ", df$category),
+        mode = "markers", color = df$category, size = df$index)
+```
+
+## F. Missing Values
+These are records with NAs or missing values  
+1. fips 06081984300 has NaN in pct_pov_below_200 and pct_singleparent_hh  
+2. fips 06081984300 (Mod) changed to NAs  
+3. fips 06095253000 has NaN in pct_pov_below_200 and pct_singleparent_hh  
+4. fips 06095253000 (Highest) changed to NAs  
+5. fips 06095980000 has NaN in pct_pov_below_200 and pct_singleparent_hh  
+6. fips 06095980000 (High) changed to NAs  
+
+#####The records below have poverty rate percentages, which is why they're not changed to NAs to prevent them from not being counted even if they do not have pct_single-parent_ household_hh. These records were categorized based on its index values.  
+7. fips 06001981900 has NA in pct_singleparent_hh  
+8. fips 06001981900 (High),  
+9. fips 06013351101 has NA in pct_singleparent_hh  
+10. fips 06013351101 (Mod),  
+11. fips 06013351102 has NA in pct_singleparent_hh  
+12. fips 06013351102 (Mod),  
+13. fips 06013351103 has NA in pct_singleparent_hh  
+14. fips 06013351103 (High),  
+15. fips 06075980300 has NA in pct_singleparent_hh  
+16. fips 06075980300 (High)
+
+## Output: Index with Filters
+```{r eval=FALSE, include=FALSE}
+table(new_df$category_wo_filters, new_df$category)
+```
+
+### G. Overlays 
+#### Racial and Ethnic Composition Overlay
+Data Source: ACS Census data 2010-2014  
+Description: To analyze the distribution of racial and ethnic composition. I joined the shapefile using the 'GEOID' field to match it with the GEOID in the opportunity categories shapefile
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+race_list <- c("fips", "CountyID.x.x", "TOTPOP.x.x", "total_pop","index","total_pop","white","black", "asian", "hispanic", "other", "county_name","cbsa","divergence_thresh", "DI_Blk_Lat_POV30_OR_POV30_SPF30")
+
+#filter_race <- function(data, r_list){
+#  daf <- data %>% select(r_list)
+#  assign(daf, envir=.GlobalEnv)
+#}
+#source(here(filter_race.R))
+#filter_race(data=index_filters, r_list=race_list)
+```
+
+#### Median Household Income
+Data Source: American Community Survey (5-year-estimates)  
+Table: B19013_001 -- MEDIAN HOUSEHOLD INCOME IN THE PAST 12 MONTHS (IN 2017 INFLATION-ADJUSTED DOLLARS)
+
+```{r eval=FALSE, include=FALSE}
+#source(here(grab_acs_variables.R))
+#grab_acs_variables("B19013_001")
+```
+
+#### Payday Lending Overlay
+Data Source: ESRI Business Analyst  
+Spreadsheet: OV_YEAR_Payday  
+Description: 2017 Measure -- Spatially join the payday lending in the bay area shape file to the 2014 census tract shape file with the opportunity categories to obtain the number of businesses per census tract. Then use the count of number of businesses per tract divided by the total count number of payday lending and credit businesses in the Bay Area to obtain the percentage.  
+2018 Measure -- Identify whether the column salevolume in the dataset has the volume of payday loan sales. Aggregate those sales and distribute them to tracts to identify the amount of sales in each neighborhood OR (if it's possible to) identity where the highest percentage of interests (200-400%) that these payday loans are located and how many of them are in each census tracts.
+
+```{r}
+#load(file="BA_payday_2018.RData")
+#proj4string(BA_payday_2018)
+
+```
+
+#### Subsidized Housing Overlay
+Data Source: HUD subsidized housing projects  
+Spreadsheet: OV_Year_SubHous  
+Description:
+ 
+•	Data should be gathered through HUD instead of TCAC. Use the file obtained from HUD to create a point shapefile based on the lat and long for each (which is in the table).  
+•	This table has all subsidized housing projects in California; Use geoprocessing to clip the subsidized housing shapefile to Bay Area   
+•	Analysis of Projects and Units should be included in the map based on subsidized units available and the number of subsidized programs in the region.
+
+```{r}
+
+```
+
+#### Low population density Overlay
+Data Source: Census Data  
+Spreadsheet: OV_Year_LowDen  
+Description: To analyze the density of the census tract and identify areas that are considered low density with 40 or more acres per person  
+•	Calculate the “area” of each tract in acres. Then I divided that by the number of people, and the results are in POP_DEN field. All tracts which had a value of 40 or above were highlighted on the map with a specific symbology  
+Example:  
+Step 1: Create a new field, “Acres_per” person for each tract > Calculate Geometry > selecting Area > Coordinate System: Use Coordinate System of the data frame: PCS: NAD 1983 StatePlane California III FIPS 0403 > Units: Acres [US] (ac) > OK  
+Step 2: Then, create a new field titled, “POP_DEN” in which the value would be “Acres_per” person for each tract divided by the number of people in the tract > select the tracts that have the value of 40 or above
+
+```{r}
+
+```
+
+
+

@@ -208,36 +208,66 @@ data <- compile_function(
 
 ### 7. Calculate Domains
 ```{r echo=TRUE}
-data$edu_domain <- rowSums(data[, c("z_preK","z_math_prof","z_read_prof","z_grad_rate","az_pct_not_frpm")], na.rm=TRUE)
-data$edu_domain <- data$edu_domain/5
+data$edu_domain <-
+  rowSums(data[, c("z_preK",
+                    "z_math_prof",
+                    "z_read_prof",
+                    "z_grad_rate",
+                    "az_pct_not_frpm")], na.rm = TRUE)
+data$edu_domain <- data$edu_domain / 5
 
-data$Socap_domain <- rowSums(data[, c("z_regvoter", "zclubs", "zreligious")], na.rm=TRUE)
+data$Socap_domain <- 
+  rowSums(data[, c("z_regvoter", 
+                   "zclubs", 
+                   "zreligious")], na.rm=TRUE)
 data$Socap_domain <- data$Socap_domain/3
 
-data$Conduit_domain <- rowSums(data[,c("az_pct_singleparent_hh_2017", "z_broadband")],na.rm=TRUE)
+data$Conduit_domain <- 
+  rowSums(data[, c("az_pct_singleparent_hh_2017",
+                   "z_broadband")],na.rm=TRUE)
 data$Conduit_domain <- data$Conduit_domain/2
 
-data$econ_domain <- rowSums(data[,c("z_jobs_lowed", "az_pct_long_commute_2017", "z_sdrevpcap", "z_home_value_2017", "az_pct_assist_2017", "z_pct_bachelors_plus_2017", "az_pct_employed_20to60_2017")],na.rm=TRUE)
+data$econ_domain <- 
+  rowSums(data[,c("z_jobs_lowed", 
+                  "az_pct_long_commute_2017", 
+                  "z_sdrevpcap", 
+                  "z_home_value_2017", 
+                  "az_pct_assist_2017", 
+                  "z_pct_bachelors_plus_2017", 
+                  "az_pct_employed_20to60_2017")],na.rm=TRUE)
 data$econ_domain <- data$econ_domain/7
 
-data$housing_domain <- rowSums(data[,c("test_azcrime", "zparks", "az_Grocery", "az_pct_toxRelease", "az_insurance", "az_pct_lead_pctl", "pct_below_200_pov_2017.x", "az_pct_pm25", "azhealthcare")],na.rm=TRUE)
+data$housing_domain <- 
+  rowSums(data[,c("test_azcrime", 
+                  "zparks", 
+                  "az_Grocery", 
+                  "az_pct_toxRelease", 
+                  "az_insurance", 
+                  "az_pct_lead_pctl", 
+                  "pct_below_200_pov_2017.x", 
+                  "az_pct_pm25", 
+                  "azhealthcare")],na.rm=TRUE)
 data$housing_domain <- data$housing_domain/9
-
-#data$fips <- as.character(data$fips)
-#data$CountyID <- as.character(data$CountyID.x)
-
-#data$fips <- ifelse(length(data$fips!=11), paste0(0, data$fips), data$fips)
 ```
 
 ## B. Index Calculation
+It is the decision of the analyst to decide whether it makes sense to calculate the index first or after the filtering process. In this case, I decided to calculate the region index of these tracts first and filter the tracts in later steps because it is important to display the scores of these tracts next to its opportunity category for comparison purposes. Our previous analyses show that some tracts may have high index values with high percentage of single-parent households and concentrated poverty.
 ```{r}
-data$index <- (data$housing_domain + data$edu_domain + data$econ_domain + data$Socap_domain + data$Conduit_domain)/5
+#Average these domains based on the methodology document
+data$index <- (
+  data$housing_domain + 
+    data$edu_domain + 
+    data$econ_domain + 
+    data$Socap_domain + 
+    data$Conduit_domain)/5
 
 summary(data$index)
 #df <- data %>% select(fips,housing_domain,edu_domain,econ_domain,Socap_domain, Conduit_domain, index) %>% filter(is.na(index))
 ```
 
 ## C. Filters
+Our filters or filtering process consists of two conditions: 1) Poverty (below 200 FPL) >= 30% and Single-parent family >= 30%, OR 2) High Divergence with population of Black and Latinx > 50% and poverty (below 200 FPL) >= 30%. Steps 1 - 3 deals with the first condition while steps 4 - 6 handles the second condition.
+
 ### 1. Filtering Single parent families >= 30% 
 returns 471 records with 8 NAs
 ```{r}
@@ -246,8 +276,10 @@ returns 471 records with 8 NAs
 #  return(data$variable)
 #}
 
+#census tracts that did not meet these conditions are given a value of 0
 data$SPF_GT_30[which(data$pct_singleparent_hh_2017.y<0.3)] <- 0
 
+#census tracts that met these conditions are filtered and given a value of -1
 data$SPF_GT_30[which(data$pct_singleparent_hh_2017.y>=0.3)] <- -1 #471 records
 
 data$flag_spf <- ifelse(is.na(data$SPF_GT_30), 0, data$SPF_GT_30)
@@ -258,8 +290,10 @@ summary(data$flag_spf) #fixed NAs to 0, 471 records
 ### 2. Filtering Poverty (below 200 FPL) >= 30% 
 returns 418 records with 3 NAs
 ```{r}
+#census tracts that did not meet these conditions are given a value of 0
 data$POVR200_GT_30[which(data$pct_below_200_pov_2017.x<0.3)] <- 0
 
+#census tracts that met these conditions are filtered and given a value of -1
 data$POVR200_GT_30[which(data$pct_below_200_pov_2017.x>=0.3)] <- -1 #418
 
 data$POVR200_GT_30 <- ifelse(is.na(data$POVR200_GT_30), 0, data$POVR200_GT_30)
@@ -269,8 +303,10 @@ summary(data$POVR200_GT_30) #418
 
 ### 3. Filtering Single parent >= 30% AND Poverty (below 200 FPL) >= 30% 
 ```{r}
+#census tracts that did not meet these conditions are given a value of 0
 data$SPF30_P30[which(data$flag_spf==0 | data$POVR200_GT_30==0)] <- 0
 
+#census tracts that met these conditions are filtered and given a value of -1
 data$SPF30_P30[which(data$flag_spf==-1 & data$POVR200_GT_30==-1)] <- -1
 
 summary(data$SPF30_P30) #fixed NAs to 0
@@ -279,45 +315,37 @@ sum(data$SPF30_P30) #292
 
 ### 4. High Divergence and population of Black and Latinx > 50%
 ```{r}
+#load the divergence dataset and correct the fips code
 load(here("data", "input_DI.RData"))
 df <- data
 df$fips <- as.character(df$fips)
 df$fips <- paste0(0,df$fips)
 dat <- merge(input_DI,df, by="fips")
 data <- dat
-  
+```
+
+```{r}
+#census tracts did not meet these conditions are given a value of 0
 data$Flag_HighDI_Blk_Lat[which(data$Black_Latinx<=0.5 | data$divergence_thresh<3)] <- 0
 
+#census tracts that met these conditions are filtered and given a value of -1
 data$Flag_HighDI_Blk_Lat[which(data$Black_Latinx>0.5 & data$divergence_thresh==3)] <- -1
 
 sum(data$Flag_HighDI_Blk_Lat) #201 no NAs
 ```
 
-### CHECK HERE 5. High Divergence with population of Black and Latinx > 50% and poverty (below 200 FPL) >= 30% 
+### 5. High Divergence with population of Black and Latinx > 50% and poverty (below 200 FPL) >= 30% 
 ```{r}
-#save.image(file="save_test.RData")
-#load(file="save_test.RData")
-
 sum(data$Flag_HighDI_Blk_Lat) #201 no NAs
 sum(data$POVR200_GT_30) #418
 
-#test <- test_function(data = data, variable1 = data$Flag_HighDI_Blk_Lat_POV30,  variable2 = data$Flag_HighDI_Blk_Lat, variable3 = data$POVR200_GT_30,value1=-1,value0=0)
-
+#records that do not meet these conditions are given a value of 0
 data$Flag_HighDI_Blk_Lat_POV30[which((data$Flag_HighDI_Blk_Lat==0) | (data$POVR200_GT_30 == 0))] <- 0
 
+#census tracts that met these conditions are filtered and given a value of -1
 data$Flag_HighDI_Blk_Lat_POV30[which((data$Flag_HighDI_Blk_Lat==-1) & (data$POVR200_GT_30 == -1))] <- -1
 
 sum(data$Flag_HighDI_Blk_Lat_POV30) #171 records 
-
-
-#data$DI_Blk_Lat_POV30[which((data$Black_Latinx < 0.5 & (data$divergence_thresh < 3)) | (data$POVR200_GT_30 == 0))] <- 0
-
-#data$DI_Blk_Lat_POV30[which((data$Black_Latinx > 0.5 & data$divergence_thresh == 3) | (data$POVR200_GT_30 == -1))] <- -1
-#320
-#sum(data$DI_Blk_Lat_POV30) #WHY this generated 418 NAs
-#returned 448?
-
-#filter_na <- data %>% select(fips, county_name,DI_Blk_Lat_POV30,Black_Latinx,divergence_thresh,POVR200_GT_30) %>%  filter(is.na(data$DI_Blk_Lat_POV30))
 
 summary(data$POVR200_GT_30) #418 no NAs
 ```
@@ -325,6 +353,7 @@ summary(data$POVR200_GT_30) #418 no NAs
 ### 6. Final Filter
 High Divergence with population of Black and Latinx > 50% and poverty (below 200 FPL) >= 30% OR Poverty (below 200 FPL) >= 30% and Single-parent family >= 30%
 ```{r}
+#census tracts that did not meet these conditions are given a value of 0
 data$DI_Blk_Lat_POV30_OR_POV30_SPF30[which((
   data$Flag_HighDI_Blk_Lat == 0 &
   data$POVR200_GT_30 == 0
@@ -335,6 +364,7 @@ data$DI_Blk_Lat_POV30_OR_POV30_SPF30[which((
   )
   )] <- 0
 
+#tracts that met these conditions are given a value of -1
 data$DI_Blk_Lat_POV30_OR_POV30_SPF30[which((
   data$Flag_HighDI_Blk_Lat == -1 &
   data$POVR200_GT_30 == -1

@@ -4,7 +4,7 @@ knit: (function(input_file, encoding) {
   out_dir <- 'docs';
   rmarkdown::render(input_file,
  encoding=encoding,
- output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
+ output_file=file.path(dirname(input_file), out_dir, 'opp_index.html'))})
 output:
   html_document:
     toc: yes
@@ -37,22 +37,13 @@ pacman::p_load(data.table,
                here, 
                plotly)
 
-all_data <-
+data <-
   fread(
   here(
   "data",
-  "all_data.csv"
+  "data.csv"
   )
   )
-data <- all_data
-  
-  #load("~/index_filters_2019.RData")
-  #load(
-  #here(
-  #"data",
-  #"index_filters_2019.RData"
-  #)
-  #)
 ```
 
 ## A. The Domains 
@@ -63,7 +54,11 @@ This year, the education domain added a new indicator called Early Childhood Par
 ```{r Opportunity Indicators}
 common_fields <- c("fips",
                    "CountyID.x",
-                   "TOTPOP.x", "county_name.x")
+                   "TOTPOP.x", 
+                   "county_name.x",
+                   "pct_singleparent_hh_2017.y",
+                   "moe_pct_singleparent_hh_2017.y",
+                   "az_pct_singleparent_hh_2017")
 edu_list <-
   c(
   "math_prof",
@@ -157,17 +152,12 @@ housing_list <-
   )
 ```
 
-### 4. Conduit
-The Conduit domain has two indicators: median broadband download speed and percentage of single-parent households.
+### 4. Conduits
+The Conduits domain has only one indicator--median broadband download speed
 ```{r}
 conduit_list <-
-  c(
-  "pct_singleparent_hh_2017.y",
-  "moe_pct_singleparent_hh_2017.y",
-  "az_pct_singleparent_hh_2017",
-  "TOTPOP.y",
+  c("TOTPOP.y",
   "Median_bb",
-  "z_broadband",
   "z_broadband2",
   "Conduit"
   )
@@ -177,22 +167,19 @@ conduit_list <-
 This is our newest domain, which has the average distance to a religious institution, registered voters voting rate, and average distance to club membership and etc. 
 ```{r}
 socap_list <-
-  c(
-  "pct_singleparent_hh_2017.y",
-  "moe_pct_singleparent_hh_2017.y",
-  "az_pct_singleparent_hh_2017",
-  "Clubs",
+  c("Clubs",
   "AVGDIS_REL",
   "reg_vote",
   "SOCIAL_CAP",
-  "z_regvoter",
+  "vote_by_tract",
   "zreligious",
   "zclubs"
   )
+
 ```
 
 ### 6. Compile All Indicators Function
-```{r echo=TRUE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 source(here::here("myfunction",'compile_function.R'))
 
 data <- compile_function(
@@ -207,7 +194,15 @@ data <- compile_function(
 ```
 
 ### 7. Calculate Domains
-```{r echo=TRUE}
+```{r echo=FALSE}
+data$z_voterate <- (data$vote_by_tract - mean(data$vote_by_tract,na.rm=TRUE))/sd(data$vote_by_tract, na.rm=TRUE)
+
+data$Socap_domain <- 
+  rowSums(data[, c("z_voterate", 
+                   "zclubs", 
+                   "zreligious")], na.rm=TRUE)
+data$Socap_domain <- data$Socap_domain/3
+
 data$edu_domain <-
   rowSums(data[, c("z_preK",
                     "z_math_prof",
@@ -216,16 +211,7 @@ data$edu_domain <-
                     "az_pct_not_frpm")], na.rm = TRUE)
 data$edu_domain <- data$edu_domain / 5
 
-data$Socap_domain <- 
-  rowSums(data[, c("z_regvoter", 
-                   "zclubs", 
-                   "zreligious")], na.rm=TRUE)
-data$Socap_domain <- data$Socap_domain/3
-
-data$Conduit_domain <- 
-  rowSums(data[, c("az_pct_singleparent_hh_2017",
-                   "z_broadband")],na.rm=TRUE)
-data$Conduit_domain <- data$Conduit_domain/2
+data$Conduit_domain <- data$z_broadband2
 
 data$econ_domain <- 
   rowSums(data[,c("z_jobs_lowed", 
@@ -252,7 +238,7 @@ data$housing_domain <- data$housing_domain/9
 
 ## B. Index Calculation
 It is the decision of the analyst to decide whether it makes sense to calculate the index first or after the filtering process. In this case, I decided to calculate the region index of these tracts first and filter the tracts in later steps because it is important to display the scores of these tracts next to its opportunity category for comparison purposes. Our previous analyses show that some tracts may have high index values with high percentage of single-parent households and concentrated poverty.
-```{r}
+```{r echo=FALSE}
 #Average these domains based on the methodology document
 data$index <- (
   data$housing_domain + 
@@ -262,6 +248,9 @@ data$index <- (
     data$Conduit_domain)/5
 
 summary(data$index)
+index <- data
+#keepdata <- index
+rm(data)
 #df <- data %>% select(fips,housing_domain,edu_domain,econ_domain,Socap_domain, Conduit_domain, index) %>% filter(is.na(index))
 ```
 
@@ -270,126 +259,126 @@ Our filters or filtering process consists of two conditions: 1) Poverty (below 2
 
 ### 1. Filtering Single parent families >= 30% 
 returns 471 records with 8 NAs
-```{r}
+```{r echo=FALSE}
 #filter_function <- function(data, variable1, variabl2, value, value2){
 #  data$variable1[which(data$variable2)] <- value2
 #  return(data$variable)
 #}
 
 #census tracts that did not meet these conditions are given a value of 0
-data$SPF_GT_30[which(data$pct_singleparent_hh_2017.y<0.3)] <- 0
+index$SPF_GT_30[which(index$pct_singleparent_hh_2017.y<0.3)] <- 0
 
 #census tracts that met these conditions are filtered and given a value of -1
-data$SPF_GT_30[which(data$pct_singleparent_hh_2017.y>=0.3)] <- -1 #471 records
+index$SPF_GT_30[which(index$pct_singleparent_hh_2017.y>=0.3)] <- -1 #471 records
 
-data$flag_spf <- ifelse(is.na(data$SPF_GT_30), 0, data$SPF_GT_30)
+index$flag_spf <- ifelse(is.na(index$SPF_GT_30), 0, index$SPF_GT_30)
 
-summary(data$flag_spf) #fixed NAs to 0, 471 records
+sum(index$flag_spf) #fixed NAs to 0, 471 records
 ```
 
 ### 2. Filtering Poverty (below 200 FPL) >= 30% 
 returns 418 records with 3 NAs
-```{r}
+```{r echo=FALSE}
 #census tracts that did not meet these conditions are given a value of 0
-data$POVR200_GT_30[which(data$pct_below_200_pov_2017.x<0.3)] <- 0
+index$POVR200_GT_30[which(index$pct_below_200_pov_2017.x<0.3)] <- 0
 
 #census tracts that met these conditions are filtered and given a value of -1
-data$POVR200_GT_30[which(data$pct_below_200_pov_2017.x>=0.3)] <- -1 #418
+index$POVR200_GT_30[which(index$pct_below_200_pov_2017.x>=0.3)] <- -1 #418
 
-data$POVR200_GT_30 <- ifelse(is.na(data$POVR200_GT_30), 0, data$POVR200_GT_30)
+index$POVR200_GT_30 <- ifelse(is.na(index$POVR200_GT_30), 0, index$POVR200_GT_30)
 
-summary(data$POVR200_GT_30) #418
+sum(index$POVR200_GT_30) #418
 ```
 
 ### 3. Filtering Single parent >= 30% AND Poverty (below 200 FPL) >= 30% 
-```{r}
+```{r echo=FALSE}
 #census tracts that did not meet these conditions are given a value of 0
-data$SPF30_P30[which(data$flag_spf==0 | data$POVR200_GT_30==0)] <- 0
+index$SPF30_P30[which(index$flag_spf==0 | index$POVR200_GT_30==0)] <- 0
 
 #census tracts that met these conditions are filtered and given a value of -1
-data$SPF30_P30[which(data$flag_spf==-1 & data$POVR200_GT_30==-1)] <- -1
+index$SPF30_P30[which(index$flag_spf==-1 & index$POVR200_GT_30==-1)] <- -1
 
-summary(data$SPF30_P30) #fixed NAs to 0
-sum(data$SPF30_P30) #292
+summary(index$SPF30_P30) #fixed NAs to 0
+sum(index$SPF30_P30) #292
 ```
 
 ### 4. High Divergence and population of Black and Latinx > 50%
-```{r}
+```{r echo=FALSE}
 #load the divergence dataset and correct the fips code
-load(here("data", "input_DI.RData"))
-df <- data
+load(here("data", "input_DI.RData")) #fips code is good
+df <- index
 df$fips <- as.character(df$fips)
 df$fips <- paste0(0,df$fips)
 dat <- merge(input_DI,df, by="fips")
-data <- dat
+index <- dat
 ```
 
-```{r}
+```{r echo=FALSE}
 #census tracts did not meet these conditions are given a value of 0
-data$Flag_HighDI_Blk_Lat[which(data$Black_Latinx<=0.5 | data$divergence_thresh<3)] <- 0
+index$Flag_HighDI_Blk_Lat[which(index$Black_Latinx<=0.5 | index$divergence_thresh<3)] <- 0
 
 #census tracts that met these conditions are filtered and given a value of -1
-data$Flag_HighDI_Blk_Lat[which(data$Black_Latinx>0.5 & data$divergence_thresh==3)] <- -1
+index$Flag_HighDI_Blk_Lat[which(index$Black_Latinx>0.5 & index$divergence_thresh==3)] <- -1
 
-sum(data$Flag_HighDI_Blk_Lat) #201 no NAs
+sum(index$Flag_HighDI_Blk_Lat) # 201 no NAs 
 ```
 
 ### 5. High Divergence with population of Black and Latinx > 50% and poverty (below 200 FPL) >= 30% 
-```{r}
-sum(data$Flag_HighDI_Blk_Lat) #201 no NAs
-sum(data$POVR200_GT_30) #418
+```{r echo=FALSE}
+sum(index$Flag_HighDI_Blk_Lat) #it is 201
+sum(index$POVR200_GT_30) #418
 
 #records that do not meet these conditions are given a value of 0
-data$Flag_HighDI_Blk_Lat_POV30[which((data$Flag_HighDI_Blk_Lat==0) | (data$POVR200_GT_30 == 0))] <- 0
+index$Flag_HighDI_Blk_Lat_POV30[which((index$Flag_HighDI_Blk_Lat==0) | (index$POVR200_GT_30 == 0))] <- 0
 
 #census tracts that met these conditions are filtered and given a value of -1
-data$Flag_HighDI_Blk_Lat_POV30[which((data$Flag_HighDI_Blk_Lat==-1) & (data$POVR200_GT_30 == -1))] <- -1
+index$Flag_HighDI_Blk_Lat_POV30[which((index$Flag_HighDI_Blk_Lat==-1) & (index$POVR200_GT_30 == -1))] <- -1
 
-sum(data$Flag_HighDI_Blk_Lat_POV30) #171 records 
+sum(index$Flag_HighDI_Blk_Lat_POV30) #171 records 
 
-summary(data$POVR200_GT_30) #418 no NAs
+sum(index$POVR200_GT_30) #418 no NAs
 ```
 
 ### 6. Final Filter
 High Divergence with population of Black and Latinx > 50% and poverty (below 200 FPL) >= 30% OR Poverty (below 200 FPL) >= 30% and Single-parent family >= 30%
-```{r}
+```{r echo=FALSE}
 #census tracts that did not meet these conditions are given a value of 0
-data$DI_Blk_Lat_POV30_OR_POV30_SPF30[which((
-  data$Flag_HighDI_Blk_Lat == 0 &
-  data$POVR200_GT_30 == 0
+index$DI_Blk_Lat_POV30_OR_POV30_SPF30[which((
+  index$Flag_HighDI_Blk_Lat == 0 &
+  index$POVR200_GT_30 == 0
   ) |
   (
-  data$POVR200_GT_30 == 0 &
-  data$pct_singleparent_hh_2017.y < 0.3
+  index$POVR200_GT_30 == 0 &
+  index$pct_singleparent_hh_2017.y < 0.3
   )
   )] <- 0
 
 #tracts that met these conditions are given a value of -1
-data$DI_Blk_Lat_POV30_OR_POV30_SPF30[which((
-  data$Flag_HighDI_Blk_Lat == -1 &
-  data$POVR200_GT_30 == -1
+index$DI_Blk_Lat_POV30_OR_POV30_SPF30[which((
+  index$Flag_HighDI_Blk_Lat == -1 &
+  index$POVR200_GT_30 == -1
   ) |
   (
-  data$POVR200_GT_30 == -1 &
-  data$pct_singleparent_hh_2017.y >= 0.3
+  index$POVR200_GT_30 == -1 &
+  index$pct_singleparent_hh_2017.y >= 0.3
   )
   )] <- -1
 
-data$DI_Blk_Lat_POV30_OR_POV30_SPF30 <-
+index$DI_Blk_Lat_POV30_OR_POV30_SPF30 <-
   ifelse(
-  is.na(data$DI_Blk_Lat_POV30_OR_POV30_SPF30),
+  is.na(index$DI_Blk_Lat_POV30_OR_POV30_SPF30),
   0,
-  data$DI_Blk_Lat_POV30_OR_POV30_SPF30
+  index$DI_Blk_Lat_POV30_OR_POV30_SPF30
   ) #fixed NAs
 
-sum(data$DI_Blk_Lat_POV30_OR_POV30_SPF30) #320 records
+sum(index$DI_Blk_Lat_POV30_OR_POV30_SPF30) #320 records
 ```
 
 # Check filters
-```{r eval=FALSE, include=FALSE}
-na_pov <- data %>% select("fips","pct_below_200_pov_2017.x") %>% filter(is.na(data$pct_below_200_pov_2017.x)) #3 NAs
+```{r echo=FALSE}
+na_pov <- index %>% select("fips","pct_below_200_pov_2017.x") %>% filter(is.na(index$pct_below_200_pov_2017.x)) #3 NAs
 
-na_spf <- data %>% select("fips", "SPF_GT_30" , "pct_singleparent_hh_2017.y") %>% filter(is.na(data$pct_singleparent_hh_2017.y)) #8 NAs
+na_spf <- index %>% select("fips", "SPF_GT_30" , "pct_singleparent_hh_2017.y") %>% filter(is.na(index$pct_singleparent_hh_2017.y)) #8 NAs
 ```
 
 # Filter Function
@@ -423,23 +412,24 @@ relevant_list <- c(
 # If these records meet one of two conditions, filter it, 
 # create a column named category and assign it "Lowest Opportunity"
 categorize <-
-  data %>% dplyr::select(relevant_list) %>% filter(DI_Blk_Lat_POV30_OR_POV30_SPF30 == -1) %>%
+  index %>% dplyr::select(relevant_list) %>% filter(DI_Blk_Lat_POV30_OR_POV30_SPF30 == -1) %>%
   mutate(category = "Lowest Opportunity") #returns 320
 
 #Filter records without poverty and single-parent family percentages
 #There are three missing records
+
 na_records <-
-  data %>% dplyr::select(relevant_list) %>% filter(
+  index %>% dplyr::select(relevant_list) %>% filter(
   fips == "06081984300" | fips == "06095253000" |
   fips == "06095980000"
-  )
+  ) 
 
 na_records$category <- "NA"
 
 #pull the unfiltered records to run the opportunity categorization
 #Here, there are the remaining 1256 records that will be categorized from highest to low opportunity 
 remaining <-
-  data %>% dplyr::select(relevant_list) %>%
+  index %>% dplyr::select(relevant_list) %>%
   filter(
   DI_Blk_Lat_POV30_OR_POV30_SPF30 == 0 &
   (
@@ -450,14 +440,14 @@ remaining <-
 ```
 
 ## D. Categorization with Filters
-```{r echo=TRUE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 #Give this category a character 
 remaining$category <- "Opportunity"
 
 #The categorization takes the quantile function and each category
 #receives roughly 314 records
 #Top 75.01% should return 314 records
-remaining$category[which(remaining$index > quantile(remaining$index, prob = .75))] <- "Highest Opportunity" 
+remaining$category[which(remaining$index > quantile(remaining$index, prob = .75))] <- "Highest Opportunity"
 
 #Between 50.01% - 75.00% should return 314 records
 remaining$category[which(remaining$index > quantile(remaining$index, prob = .50) & remaining$index <= quantile(remaining$index, prob = .75))] <- "High Opportunity" 
@@ -467,70 +457,114 @@ remaining$category[which(remaining$index > quantile(remaining$index, prob = .25)
 
 #Bottom 25% should return 314 records
 remaining$category[which(remaining$index <= quantile(remaining$index, prob = .25))] <- "Low Opportunity" #314
-
-#Join the datasets with filters with a function
-df <-
-  Reduce(function(x, y, z)
-  full_join(
-  x = x,
-  y = y,
-  z = z
-  ) ,
-  list(remaining, categorize, nan_records))
 ```
 
 ### 1. Categorization with Filters
-```{r echo=TRUE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 #Join the datasets and filters using Reduce
-df <-
+df_cat <-
   Reduce(function(x, y, z)
   full_join(
   x = x,
   y = y,
   z = z
   ) ,
-  list(remaining, categorize, nan_records))
+  list(remaining, categorize, na_records))
 ```
 
 ## E. Categorization without Filters
 Here, I take a slightly different approach with the categorization method. Instead of breaking each category into 25%, I break it down by 20% per category, which means each category will have the same number of records. This is because all of these records are categorized only by its index value rather than filters.
-```{r echo=TRUE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 #data$index <- ifelse(is.na(data$index), 0, data$index)
 
 #Top 20% (80-100%)
-data$category_wo_filters[which((data$index > quantile(data$index, prob = .80)))] <- "Highest Opportunity"
+index$category_wo_filters[which((index$index > quantile(index$index, prob = .80)))] <- "Highest Opportunity"
 
 #Between 60-80%
-data$category_wo_filters[which(data$index >= quantile(data$index, prob = .60) & data$index <= quantile(data$index, prob =.80))] <- "High Opportunity"
+index$category_wo_filters[which(index$index >= quantile(index$index, prob = .60) & index$index <= quantile(index$index, prob =.80))] <- "High Opportunity"
 
 #Bottom 20%
-data$category_wo_filters[which(data$index <= quantile(data$index, prob = 0.20))] <- "Lowest Opportunity"
+index$category_wo_filters[which(index$index <= quantile(index$index, prob = 0.20))] <- "Lowest Opportunity"
 
 #Between 40-60%
-data$category_wo_filters[which(data$index < quantile(data$index, prob =.60) & data$index > quantile(data$index, prob = .40))] <- "Moderate Opportunity" 
+index$category_wo_filters[which(index$index < quantile(index$index, prob =.60) & index$index > quantile(index$index, prob = .40))] <- "Moderate Opportunity" 
 
 #Between 20-40%
-data$category_wo_filters[which(data$index <= quantile(data$index, prob = .40) & data$index >= quantile(data$index, prob = 0.20))] <- "Low Opportunity"
+index$category_wo_filters[which(index$index <= quantile(index$index, prob = .40) & index$index >= quantile(index$index, prob = 0.20))] <- "Low Opportunity"
 
-new_df <- merge(data, df, by = intersect(names(data), names(df)), all.x = TRUE)
-#write.csv(data, "data.csv")
+new_df <- merge(index, df_cat, by = intersect(names(index), names(df_cat)), all.x = TRUE)
+write_csv(new_df, "index_oct18.csv")
 ```
 
 ### 1. Graphs or Charts
-####Opportunity Index Scores of CBSA
-```{r echo=TRUE, message=FALSE, warning=FALSE}
-categories <- fread(here("output", "categories.csv"))
+####Opportunity Index Scores by CBSA
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#categories <- fread(here("output", "categories.csv"))
+one <- ggplot2::ggplot(new_df, aes(x=index, y=category, color=category)) + geom_point()
 
-categoriez <- categories
-
-one <- ggplot2::ggplot(categoriez, aes(x=index.x, y=category, color=category)) + geom_point()
-
-one+facet_grid(.~category)
+one+facet_wrap(.~category)
 #ggsave("index_category", "index_category.png")
 
+two <-
+  ggplot(new_df, aes(x = cbsa, fill = (category))) + geom_bar(position = "dodge")
+ggplotly(two)
+```
+
+
+#### Opportunity Categories by County
+```{r echo=FALSE}
 three <-
-  ggplot(df, aes(x = cbsa, fill = (category))) + geom_bar(position = "dodge")
+  ggplot(new_df, aes(x = df$county_name, fill = (category))) + geom_bar(position = "dodge")
 ggplotly(three)
+
+
+test <- ggplot(new_df, aes(x=new_df$county_name, fill=(category))) + geom_bar(position="dodge")
+ggplotly(test)
+
+socap_his <-
+  hist(
+  new_df$Socap_domain,
+  freq = TRUE,
+  main = "Social Capital Domain",
+  xlab = "Social Capital Domain Scores",
+  ylab = "Number of Tracts"
+  )
+
+conduit_his <-
+  hist(
+  new_df$Conduit_domain,
+  freq = TRUE,
+  main = "Conduit Domain",
+  xlab = "Conduit Domain Scores",
+  ylab = "Number of Tracts"
+  )
+
+edu_his <-
+  hist(
+  new_df$edu_domain,
+  freq = TRUE,
+  main = "Education Domain",
+  xlab = "Education Domain Scores",
+  ylab = "Number of Tracts"
+  )
+
+econ_his <-
+  hist(
+  new_df$econ_domain,
+  freq = TRUE,
+  main = "Economics & Mobility Domain",
+  xlab = "Economics & Mobility Domain Scores",
+  ylab = "Number of Tracts"
+  )
+
+housingneigh_his <-
+  hist(
+  new_df$housing_domain,
+  freq = TRUE,
+  main = "Housing & Neighborhood Domain",
+  xlab = "Housing & Neighborhood Domain Scores",
+  ylab = "Number of Tracts"
+  )
 
 #Map It
 #library(leaflet)
@@ -540,20 +574,12 @@ ggplotly(three)
 #  addCircleMarkers(color = ~t(tann))
 ```
 
-
-#### Opportunity Categories by County
-```{r echo=TRUE}
-p <-
-  ggplot(df, aes(x = df$county_name, fill = (category))) + geom_bar(position = "dodge")
-ggplotly(p)
-```
-
 #### Number of Tracts by Opportunity Category and Index Scores
-```{r echo=TRUE, message=FALSE, warning=FALSE}
-d <- df[sample(nrow(df), 1500), ]
-plot_ly(df, x = df$category, y = df$index, 
-        text = paste("Category: ", df$category),
-        mode = "markers", color = df$category, size = df$index)
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+four <- new_df[sample(nrow(new_df), 1579), ]
+plot_ly(new_df, x = new_df$category, y = new_df$index, 
+        text = paste("Category: ", new_df$category),
+        mode = "markers", color = new_df$category, size = new_df$index)
 ```
 
 ## F. Missing Values
@@ -580,20 +606,87 @@ These are records with NAs or missing values
 ## Output: Index with Filters
 ```{r eval=FALSE, include=FALSE}
 table(new_df$category_wo_filters, new_df$category)
+
+sb50 <- fread(here("data", "sb50.csv")) #8057
+
+sb50_bayarea <- sb50 %>% filter(county_name=="Alameda"| county_name=="Contra Costa"| county_name=="Marin"| county_name=="Napa" | county_name=="Santa Clara" | county_name=="San Francisco" | county_name=="Sonoma" | county_name=="Solano" |county_name=="San Mateo") #1582
+
+opp_sb50 <- merge(sb50_bayarea, new_df, by="fips") #1579
+
+table(opp_sb50$category, opp_sb50$jobsOppFlag)
+table(opp_sb50$category, opp_sb50$jfitOppFlag)
+table(opp_sb50$category, opp_sb50$distOppFlag)
+table(opp_sb50$category, opp_sb50$finalFlag)
+
+s <- as.data.frame(table(opp_sb50$category, opp_sb50$jobsOppFlag))
+s$ID <- rownames(s)
+
+ggplot(s, aes(Var1, Freq, col=Var1)) + 
+  geom_point() + 
+  stat_smooth() +
+  facet_wrap(~Var2) + xlab("Opportunity Category") + ylab("Frequency")
+
 ```
+
+## Correlations Exploration
+```{r echo=FALSE}
+library(corrplot)
+test_corr <- read_csv(here("test_corr.csv"))
+d <- test_corr
+
+d[is.na(d)] <- 0
+
+d <- cor(d)
+corrplot(d, method='circle')
+## text labels rotated 45 degrees
+corrplot(d, type = "lower", order = "hclust", tl.col = "red", tl.srt = 45, tl.cex=0.5)
+
+```
+
 
 ### G. Overlays 
 #### Racial and Ethnic Composition Overlay
 Data Source: ACS Census data 2010-2014  
-Description: To analyze the distribution of racial and ethnic composition. I joined the shapefile using the 'GEOID' field to match it with the GEOID in the opportunity categories shapefile
+Description: To analyze the distribution of racial and ethnic composition by opportunity categories, user must first join the two datasets then get the aggregate value of the population for each racial group in each opportunity group.
 
-```{r echo=TRUE, message=FALSE, warning=FALSE}
-race_list <- c("fips", "CountyID.x.x", "TOTPOP.x.x", "total_pop","index","total_pop","white","black", "asian", "hispanic", "other", "county_name","cbsa","divergence_thresh", "DI_Blk_Lat_POV30_OR_POV30_SPF30")
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+common_list <- c("fips", "county_name","CountyID.x")
+race_list <- c("white", "black", "asian", "other", "hispanic")
+opp_list <- c("county_name", "cbsa", "category")
 
-#filter_race <- function(data, r_list){
-#  daf <- data %>% select(r_list)
-#  assign(daf, envir=.GlobalEnv)
-#}
+filter_race1 <- function(data, race_list, df, opp_list, string, string1){
+  first <- data %>% select(common_list, race_list)
+  print(dim(first))
+  second <- df %>% select(opp_list)
+  print(dim(second))
+  dat2 <- merge(first, second, by.x=string, by.y=string1)
+    #mapply(c, first, second, SIMPLIFY=FALSE) #Problem with merge
+  print(dim(dat2))
+  return(dat2)
+}
+
+race1 <- filter_race1(data = data, race_list = race_list, df = df, opp_list = opp_list, string = "county_name.x", string1="county_name")
+
+colnames(race1)
+
+race_agg <- select(race1, -fips, -county_name.x, -CountyID.x) %>% group_by(county_name) %>% summarise(white=sum(white), black=sum(black), asian=sum(asian), latinx=sum(hispanic), other=sum(other), category=n())
+
+race_agg <- 
+  colSums(race1[c("white", "black", "asian", "hispanic", "other"),],na.rm=TRUE)
+
+library(reshape2)
+race_agg <- melt(race_agg, id.vars="county_name.x")
+
+# Everything on the same plot
+ggplot(race_agg, aes(county_name.x, value, col=variable)) + 
+  geom_point() + 
+  stat_smooth() 
+
+# Separate plots
+ggplot(race_agg, aes(variable, value)) + 
+  geom_point() + 
+  stat_smooth() +
+  facet_wrap(~county_name.x)
 #source(here(filter_race.R))
 #filter_race(data=index_filters, r_list=race_list)
 ```
@@ -642,6 +735,128 @@ Step 1: Create a new field, “Acres_per” person for each tract > Calculate Ge
 Step 2: Then, create a new field titled, “POP_DEN” in which the value would be “Acres_per” person for each tract divided by the number of people in the tract > select the tracts that have the value of 40 or above
 
 ```{r}
+library(sp)
+library(rgdal)
+library(raster)
+devtools::install_github("paleolimbot/ggspatial")
+library(tidyverse)
+library(ggspatial)
+setwd("/Users/ptseng/Downloads/08-08-2019 Shapefiles/tl_2017_39_bg/")
+
+#ohio_bg <- rgdal::readOGR(dsn = normalizePath("~/Downloads/08-08-2019 Shapefiles/tl_2017_39_bg/"), layer = "tl_2017_39_bg")
+
+ohio_bg <- raster::shapefile("~/Downloads/08-08-2019 Shapefiles/tl_2017_39_bg/tl_2017_39_bg.shp")
+
+#ggplot() +ggspatial::geom_spatial(data = ohio_bg, fill = NA, colour = "black") + theme_void() + coord_map()
+
+ggplot() +
+  ggspatial::geom_spatial(data = streams, colour = "blue") +
+  theme_void() +
+  coord_map()
+
+ggplot() +
+  ggspatial::geom_spatial(data = watersheds, fill = NA, colour = "black") +
+  ggspatial::geom_spatial(data = lights, colour = "red", alpha = 0.4) +
+  theme_void() +
+  coord_map()
+
+slotNames(watersheds)
+
+#Let us look more closely at the data slot in streams. This is just a data frame, and so we can look at it as a tibble:
+as_tibble(ohio_bg@data)
+
+#stream segments that are classified as INTERMITTENT:
+intermitt <- ohio_bg %>%
+  subset(., ohio_bg == "INTERMITTENT")
+
+#While there were 1514 features in streams
+
+length(streams)
+
+ggplot() +
+  ggspatial::geom_spatial(data = ohio_bg, colour = "orange") +
+  coord_map()
+
+#transform the coordinate reference system to something else, we can do like this:
+
+ohio_bg <- spTransform(ohio_bg, CRS("+init=epsg:4326"))
+
+#plot stream and color them by stream type
+ggplot() +
+  ggspatial::geom_spatial(data = ohio_bg, mapping = aes(color="black")) +
+  coord_map()
+
+#background
+rosm::osm.types()
+
+#hillshade
+ggplot() +
+  geom_osm(type = "hillshade") + 
+  ggspatial::geom_spatial(data = streams, mapping = aes(colour = STREAMTYPE), alpha = 0.5) +
+  coord_map() +
+  theme_void()
+
+ggplot() +
+  geom_osm(type = "hillshade") + 
+  ggspatial::geom_spatial(data = streams, mapping = aes(colour = STREAMTYPE), alpha = 0.5) +
+  coord_map(xlim = c(-122.3, -121.6), ylim = c(37.0, 37.1)) +
+  theme_void()
+
+ggplot() +
+  ggspatial::geom_osm(type = "hillshade") + 
+  ggspatial::geom_spatial(data = streams, mapping = aes(colour = STREAMTYPE), alpha = 0.5) +
+  coord_map() +
+  theme_void() +
+  facet_wrap(~ STREAMTYPE)
+
+#spatial object that has the polygon representing Scott Creek:
+
+scott_shed <- subset(watersheds, NAME == "Scott")
+
+#raster::intersect() to get the streams that intersection with scott_shed
+
+scott_streams <- raster::intersect(streams, scott_shed)
+
+#plot streem and surrounding watershed
+
+ggplot() +
+  ggspatial::geom_spatial(scott_streams, aes(colour = STREAMTYPE)) +
+  ggspatial::geom_spatial(scott_shed, colour = "black", fill = NA) +
+  coord_map() + 
+  theme_void()
+
+ggplot() +
+  ggspatial::geom_osm(type = "hillshade") + 
+  ggspatial::geom_spatial(scott_streams, aes(colour = STREAMTYPE)) +
+  ggspatial::geom_spatial(scott_shed, colour = "black", fill = NA) +
+  coord_map() + 
+  theme_void()
+
+carmel_bay <- raster::brick("inputs/carmel_bay_bathy.tif") 
+
+
+#ggspatial has the function geom_spraster_rgb() for plotting the entire extent of a three-banded raster, interpreting the bands as red, green and blue.
+
+ggplot() +
+  ggspatial::geom_spraster_rgb(carmel_bay) +
+  coord_fixed()
+
+sebastes_stillwater <- readRDS("inputs/sebastes_locations.rds") %>%
+  filter(LATITUDE_M > 36.55, 
+         LATITUDE_M < 36.575,
+         LONGITUDE_M > -121.975,
+         LONGITUDE_M < -121.925)
+
+ggplot() +
+  geom_point(data = sebastes_stillwater, mapping = aes(x = LONGITUDE_M, y = LATITUDE_M)) +
+  coord_quickmap()
+
+ggplot() +
+  ggspatial::annotation_spraster(carmel_bay, interpolate = TRUE) +
+  geom_point(data = sebastes_stillwater, mapping = aes(x = LONGITUDE_M, y = LATITUDE_M), 
+             colour = "yellow",
+             alpha = 0.3) +
+  coord_fixed()
 
 ```
 

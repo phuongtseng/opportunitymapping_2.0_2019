@@ -172,6 +172,7 @@ socap_list <-
   "reg_vote",
   "SOCIAL_CAP",
   "vote_by_tract",
+  "z_regvoter",
   "zreligious",
   "zclubs"
   )
@@ -202,6 +203,8 @@ data$Socap_domain <-
                    "zclubs", 
                    "zreligious")], na.rm=TRUE)
 data$Socap_domain <- data$Socap_domain/3
+
+#testview <- data %>% select(fips, socap_O, Socap_domain)
 
 data$edu_domain <-
   rowSums(data[, c("z_preK",
@@ -247,9 +250,17 @@ data$index <- (
     data$Socap_domain + 
     data$Conduit_domain)/5
 
+data$index_O <- (
+  data$housing_domain + 
+    data$edu_domain + 
+    data$econ_domain + 
+    data$socap_O + 
+    data$Conduit_domain)/5
+
+
 summary(data$index)
 index <- data
-#keepdata <- index
+keepdata <- index
 rm(data)
 #df <- data %>% select(fips,housing_domain,edu_domain,econ_domain,Socap_domain, Conduit_domain, index) %>% filter(is.na(index))
 ```
@@ -391,6 +402,7 @@ relevant_list <- c(
   "Black_Latinx",
   "white_Asian",
   "index",
+  "index_O",
   "SPF30_P30",
   "Flag_HighDI_Blk_Lat_POV30",
   "DI_Blk_Lat_POV30_OR_POV30_SPF30",
@@ -448,15 +460,24 @@ remaining$category <- "Opportunity"
 #receives roughly 314 records
 #Top 75.01% should return 314 records
 remaining$category[which(remaining$index > quantile(remaining$index, prob = .75))] <- "Highest Opportunity"
+remaining$category_O[which(remaining$index_O > quantile(remaining$index_O, prob = .75))] <- "Highest Opportunity"
 
 #Between 50.01% - 75.00% should return 314 records
 remaining$category[which(remaining$index > quantile(remaining$index, prob = .50) & remaining$index <= quantile(remaining$index, prob = .75))] <- "High Opportunity" 
 
+remaining$category_O[which(remaining$index_O > quantile(remaining$index_O, prob = .50) & remaining$index_O <= quantile(remaining$index_O, prob = .75))] <- "High Opportunity" 
+
 #Between 25.01% - 50.00% should return 314 records
 remaining$category[which(remaining$index > quantile(remaining$index, prob = .25) & remaining$index <= quantile(remaining$index, prob = .50))] <- "Moderate Opportunity"
 
+remaining$category_O[which(remaining$index_O > quantile(remaining$index_O, prob = .25) & remaining$index_O <= quantile(remaining$index_O, prob = .50))] <- "Moderate Opportunity"
+
+
 #Bottom 25% should return 314 records
 remaining$category[which(remaining$index <= quantile(remaining$index, prob = .25))] <- "Low Opportunity" #314
+
+remaining$category_O[which(remaining$index_O <= quantile(remaining$index_O, prob = .25))] <- "Low Opportunity" #314
+
 ```
 
 ### 1. Categorization with Filters
@@ -493,7 +514,7 @@ index$category_wo_filters[which(index$index < quantile(index$index, prob =.60) &
 index$category_wo_filters[which(index$index <= quantile(index$index, prob = .40) & index$index >= quantile(index$index, prob = 0.20))] <- "Low Opportunity"
 
 new_df <- merge(index, df_cat, by = intersect(names(index), names(df_cat)), all.x = TRUE)
-write_csv(new_df, "index_oct18.csv")
+write_csv(new_df, "index_oct24.csv")
 ```
 
 ### 1. Graphs or Charts
@@ -521,11 +542,20 @@ ggplotly(three)
 test <- ggplot(new_df, aes(x=new_df$county_name, fill=(category))) + geom_bar(position="dodge")
 ggplotly(test)
 
+socap_O <-
+  hist(
+  new_df$socap_O,
+  freq = TRUE,
+  main = "Original Social Capital Domain",
+  xlab = "Social Capital Domain Scores",
+  ylab = "Number of Tracts"
+  )
+
 socap_his <-
   hist(
   new_df$Socap_domain,
   freq = TRUE,
-  main = "Social Capital Domain",
+  main = "Revised Social Capital Domain",
   xlab = "Social Capital Domain Scores",
   ylab = "Number of Tracts"
   )
@@ -606,6 +636,8 @@ These are records with NAs or missing values
 ## Output: Index with Filters
 ```{r eval=FALSE, include=FALSE}
 table(new_df$category_wo_filters, new_df$category)
+table(new_df$category_wo_filters, new_df$category)
+
 
 sb50 <- fread(here("data", "sb50.csv")) #8057
 
